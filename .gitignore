@@ -1,41 +1,95 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# ─── Dependencies ───────────────────────────────────────────────────────────
 node_modules/
+.pnp
+.pnp.js
 
-# Expo
+# ─── Expo ────────────────────────────────────────────────────────────────────
 .expo/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
-.kotlin/
-*.orig.*
+# ─── Build outputs ───────────────────────────────────────────────────────────
+build/
+out/
+
+# ─── Native generated folders (managed by Expo) ──────────────────────────────
+# Uncomment these if using Expo managed workflow (no bare workflow)
+# /android
+# /ios
+
+# ─── Android ─────────────────────────────────────────────────────────────────
+android/.gradle/
+android/.kotlin/
+android/app/.cxx/
+android/app/build/
+android/build/
+android/local.properties
+android/app/debug.keystore
+
+# ─── iOS ─────────────────────────────────────────────────────────────────────
+ios/Pods/
+ios/.xcode.env.local
+ios/build/
+ios/DerivedData/
+ios/*.xcworkspace/xcuserdata/
+
+# ─── Keystores & certificates (NEVER commit signing keys) ────────────────────
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.keystore
+*.pem
+*.cer
+*.der
+*.pfx
 
-# Metro
+# ─── Environment / secrets ───────────────────────────────────────────────────
+.env
+.env.*
+.env.local
+.env.*.local
+google-services.json
+GoogleService-Info.plist
+
+# ─── Metro bundler ───────────────────────────────────────────────────────────
 .metro-health-check*
+.metro-bundler-cache/
 
-# debug
+# ─── Debug logs ──────────────────────────────────────────────────────────────
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
 
-# macOS
+# ─── OS generated ────────────────────────────────────────────────────────────
 .DS_Store
-*.pem
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
 
-# local env files
-.env*.local
+# ─── Editor / IDE ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.cursor/
 
-# typescript
+# ─── TypeScript ──────────────────────────────────────────────────────────────
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
+# ─── Coverage ────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── Misc ────────────────────────────────────────────────────────────────────
+.claude/

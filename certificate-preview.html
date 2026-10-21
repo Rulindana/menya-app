@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menya Certificate Preview</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(135deg, #0a1628 0%, #1a2a4a 50%, #0d3320 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .stars {
+            font-size: 24px;
+            margin-bottom: 20px;
+            animation: twinkle 1.5s ease-in-out infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        .page-title {
+            font-size: 36px;
+            font-weight: 900;
+            color: #FFD700;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .page-subtitle {
+            font-size: 16px;
+            color: rgba(255,255,255,0.7);
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+        .certificate {
+            width: 500px;
+            background: #FFFFFF;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            animation: scaleIn 0.8s ease-out;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .flag-stripe {
+            display: flex;
+            height: 14px;
+        }
+        .stripe-blue { flex: 1; background: #00A1DE; }
+        .stripe-yellow { flex: 0.5; background: #FAD201; }
+        .stripe-green { flex: 1; background: #20603D; }
+        .sun {
+            text-align: center;
+            margin: 20px 0 10px;
+            font-size: 50px;
+            animation: rotate 20s linear infinite;
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .cert-content {
+            padding: 0 30px 25px;
+            text-align: center;
+        }
+        .cert-label {
+            font-size: 12px;
+            font-weight: 900;
+            color: #20603D;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        .divider {
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #E0E0E0, transparent);
+            margin: 15px auto;
+        }
+        .cert-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .cert-name {
+            font-size: 32px;
+            font-weight: 900;
+            color: #20603D;
+            font-style: italic;
+            margin: 10px 0;
+        }
+        .course-badge {
+            display: inline-block;
+            background: rgba(32, 96, 61, 0.08);
+            border: 2px solid rgba(32, 96, 61, 0.3);
+            border-radius: 12px;
+            padding: 15px 30px;
+            margin: 15px 0;
+        }
+        .course-emoji { font-size: 36px; }
+        .course-name {
+            font-size: 22px;
+            font-weight: 900;
+            color: #20603D;
+        }
+        .course-level {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-icon { font-size: 24px; }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 900;
+            color: #1A1A1A;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+        }
+        .stat-divider {
+            width: 1px;
+            height: 50px;
+            background: #E0E0E0;
+        }
+        .cert-date {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .cert-issuer {
+            font-size: 14px;
+            font-weight: 700;
+            color: #20603D;
+            margin-top: 5px;
+        }
+        .gorilla {
+            text-align: center;
+            font-size: 70px;
+            margin-top: 30px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .gorilla-msg {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            font-size: 16px;
+            margin-top: 10px;
+            margin-bottom: 30px;
+        }
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 15px;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: scale(1.05); }
+        .btn-gold { background: #FFD700; color: #1A1A1A; }
+        .btn-green { background: #20603D; color: #FFF; }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 13px;
+        }
+        .footer-brand { 
+            font-weight: 800; 
+            color: rgba(255,255,255,0.7);
+        }
+        .footer-url {
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars">✨ ⭐ 🌟 ✨ ⭐</div>
+    
+    <h1 class="page-title">🏆 Congratulations!</h1>
+    <p class="page-subtitle">Warangije Isomo Ryose!</p>
+    
+    <div class="certificate">
+        <!-- Rwanda Flag Top -->
+        <div class="flag-stripe">
+            <div class="stripe-blue"></div>
+            <div class="stripe-yellow"></div>
+            <div class="stripe-green"></div>
+        </div>
+        
+        <!-- Sun -->
+        <div class="sun">☀️</div>
+        
+        <!-- Certificate Content -->
+        <div class="cert-content">
+            <p class="cert-label">CERTIFICATE OF COMPLETION</p>
+            <div class="divider"></div>
+            
+            <p class="cert-text">This certifies that</p>
+            <p class="cert-name">Alain Robet</p>
+            <p class="cert-text">has successfully completed</p>
+            
+            <div class="course-badge">
+                <div class="course-emoji">🦍</div>
+                <div class="course-name">Menya Kinyarwanda</div>
+                <div class="course-level">Full Course • 30 Lessons</div>
+            </div>
+            
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-value">1,250</div>
+                    <div class="stat-label">Total XP</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-value">8</div>
+                    <div class="stat-label">Level</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-icon">🎖️</div>
+                    <div class="stat-value">30/30</div>
+                    <div class="stat-label">Lessons</div>
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            <p class="cert-date">August 30, 2026</p>
+            <p class="cert-issuer">Issued by Menya App 🇷🇼</p>
+        </div>
+        
+        <!-- Rwanda Flag Bottom -->
+        <div class="flag-stripe">
+            <div class="stripe-green"></div>
+            <div class="stripe-yellow"></div>
+            <div class="stripe-blue"></div>
+        </div>
+    </div>
+    
+    <div class="gorilla">🦍</div>
+    <p class="gorilla-msg">Wakoze cyane! You are now a Kinyarwanda champion!</p>
+    
+    <div class="buttons">
+        <button class="btn btn-gold">📤 Share Certificate</button>
+        <button class="btn btn-green">🏠 Back to Home</button>
+    </div>
+    
+    <div class="footer">
+        Powered by <span class="footer-brand">Runi RW</span>
+        <div class="footer-url">runirw.com</div>
+    </div>
+</body>
+</html>

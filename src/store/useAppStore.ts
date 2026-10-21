@@ -1,0 +1,451 @@
+import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signOut } from 'firebase/auth';
+import { auth as firebaseAuth } from '../firebase/config';
+import {
+  saveUserData,
+  loadUserData,
+  subscribeToUserData,
+  updateStreakInFirestore,
+  updateXPInFirestore,
+  completeLessonInFirestore,
+  updateCertificateInFirestore,
+  updateUserProfileInFirestore,
+  updateLeaderboardEntry,
+} from '../firebase/syncService';
+
+export type AvatarId =
+  | 'gorilla'
+  | 'flag'
+  | 'hills'
+  | 'lake'
+  | 'mountain'
+  | 'sun'
+  | 'drum'
+  | 'heart'
+  | 'coffee'
+  | 'basket'
+  | 'cow'
+  | 'champion'
+  | 'king'
+  | 'diamond'
+  | 'rocket'
+  | 'legend';
+
+export interface UserProgress {
+  completedLessons: string[];
+  perfectLessons: string[];   // lessons completed with 0 mistakes
+  xp: number;
+  streak: number;
+  lastActiveDate: string | null;
+  hearts: number;
+  level: number;
+}
+
+export interface UserProfile {
+  uid: string | null;
+  email: string | null;
+  displayName: string | null;
+  age: number | null;
+  avatar: AvatarId;
+  photoUri: string | null;   // local URI of the user's profile photo
+  isLoggedIn: boolean;
+}
+
+interface AppState {
+  user: UserProfile;
+  progress: UserProgress;
+  certificate: { earned: boolean; earnedAt?: string };
+  isOnline: boolean;
+  setUser: (user: Partial<UserProfile>) => void;
+  logout: () => void;
+  completeLesson: (lessonId: string, xpEarned: number, isPerfect?: boolean) => void;
+  addXP: (amount: number) => void;
+  loseHeart: () => void;
+  resetHearts: () => void;
+  updateStreak: () => void;
+  setAvatar: (avatar: AvatarId) => void;
+  updateDisplayName: (name: string) => void;
+  setPhotoUri: (uri: string | null) => void;
+  earnCertificate: () => void;
+  loadFromStorage: () => Promise<void>;
+  saveToStorage: () => Promise<void>;
+  syncWithFirestore: () => Promise<void>;
+}
+
+export const defaultProgress: UserProgress = {
+  completedLessons: [],
+  perfectLessons: [],
+  xp: 0,
+  streak: 0,
+  lastActiveDate: null,
+  hearts: 5,
+  level: 1,
+};
+
+const defaultUser: UserProfile = {
+  uid: null,
+  email: null,
+  displayName: null,
+  age: null,
+  avatar: 'gorilla',
+  photoUri: null,
+  isLoggedIn: false,
+};
+
+// XP thresholds per level (cumulative total XP needed to reach that level)
+// Designed to match the ~312 total XP available across all 14 units / 27 lessons.
+// Level 1: 0 XP (start)
+// Level 2: 30 XP  — finish Unit 1 (Greetings, 35 XP)
+// Level 3: 70 XP  — finish Unit 2 (Numbers, +45 XP = 80 XP)
+// Level 4: 95 XP  — finish Unit 3 (Colors, +22 XP = 102 XP)
+// Level 5: 115 XP — finish Unit 4 (Family, +10 XP = 112 XP)
+// Level 6: 150 XP — finish Unit 5 (Food, +34 XP = 146 XP)
+// Level 7: 175 XP — finish Unit 6 (Animals, +20 XP = 166 XP)
+// Level 8: 210 XP — finish Unit 7+8 (Body+Time, +47 XP = 213 XP)
+// Level 9: 250 XP — finish Unit 9+10 (Verbs+Travel, +36 XP = 249 XP)
+// Level 10: 285 XP — finish Unit 11-14 (Culture+Phrases+Home, +63 XP = 312 XP)
+export const LEVEL_XP_THRESHOLDS = [0, 30, 70, 95, 115, 150, 175, 210, 250, 285, 320];
+
+export const getLevel = (xp: number): number => {
+  let level = 1;
+  for (let i = 1; i < LEVEL_XP_THRESHOLDS.length; i++) {
+    if (xp >= LEVEL_XP_THRESHOLDS[i]) level = i + 1;
+    else break;
+  }
+  return Math.min(level, LEVEL_XP_THRESHOLDS.length); // cap at max level
+};
+
+export const getLevelProgress = (xp: number): { current: number; needed: number; percent: number } => {
+  const level = getLevel(xp);
+  const currentThreshold = LEVEL_XP_THRESHOLDS[level - 1] ?? 0;
+  const nextThreshold = LEVEL_XP_THRESHOLDS[level] ?? LEVEL_XP_THRESHOLDS[LEVEL_XP_THRESHOLDS.length - 1];
+  const needed = nextThreshold - currentThreshold;
+  const earned = xp - currentThreshold;
+  return { current: earned, needed, percent: Math.min(earned / needed, 1) };
+};
+
+// XP Bonus based on total XP earned
+export const getXPBonus = (totalXP: number): number => {
+  if (totalXP >= 10000) return 50; // 50 XP bonus per lesson
+  if (totalXP >= 5000) return 30;
+  if (totalXP >= 3000) return 20;
+  if (totalXP >= 2000) return 15;
+  if (totalXP >= 1500) return 10;
+  if (totalXP >= 1000) return 5;
+  if (totalXP >= 500) return 3;
+  return 0;
+};
+
+// Streak multiplier for XP
+export const getStreakMultiplier = (streak: number): number => {
+  if (streak >= 30) return 2.0; // Double XP
+  if (streak >= 14) return 1.5;
+  if (streak >= 7) return 1.25;
+  if (streak >= 3) return 1.1;
+  return 1.0;
+};
+
+export const useAppStore = create<AppState>((set, get) => ({
+  user: defaultUser,
+  progress: defaultProgress,
+  certificate: { earned: false },
+  isOnline: false,
+
+  setUser: (userData) => {
+    set((state) => ({ user: { ...state.user, ...userData } }));
+    get().saveToStorage();
+    // Sync to Firestore for ALL logged-in users (including anonymous)
+    const uid = get().user.uid;
+    if (uid && get().user.isLoggedIn) {
+      get().syncWithFirestore();
+    }
+  },
+
+  logout: async () => {
+    // Sign out from Firebase Auth first
+    try {
+      if (firebaseAuth) {
+        await signOut(firebaseAuth);
+      }
+    } catch (e) { /* ignore */ }
+
+    // Clear ALL local data — no backup that could leak to the next user
+    set({ user: defaultUser, progress: { ...defaultProgress }, certificate: { earned: false } });
+    try {
+      await AsyncStorage.multiRemove([
+        'menya_user',
+        'menya_progress',
+        'menya_certificate',
+        'menya_progress_backup',
+        'menya_certificate_backup',
+      ]);
+    } catch (e) { /* ignore */ }
+  },
+
+  completeLesson: (lessonId, xpEarned, isPerfect = false) => {
+    set((state) => {
+      const already = state.progress.completedLessons.includes(lessonId);
+      const base = already ? Math.floor(xpEarned / 2) : xpEarned;
+
+      // +4 XP bonus for perfect lesson (0 mistakes), first time only
+      const perfectBonus = (isPerfect && !already && !state.progress.perfectLessons.includes(lessonId)) ? 4 : 0;
+
+      const newCompleted = already
+        ? state.progress.completedLessons
+        : [...state.progress.completedLessons, lessonId];
+
+      const newPerfect = (isPerfect && !state.progress.perfectLessons.includes(lessonId))
+        ? [...state.progress.perfectLessons, lessonId]
+        : state.progress.perfectLessons;
+
+      // +20 XP bonus if ALL lessons are now perfect (first time)
+      // Import getTotalLessons inline to avoid circular deps
+      const totalLessonsCount = 26; // matches getTotalLessons() in lessons.ts
+      const allPerfectBonus = (isPerfect && newPerfect.length >= totalLessonsCount && state.progress.perfectLessons.length < totalLessonsCount) ? 20 : 0;
+
+      const newXP = state.progress.xp + base + perfectBonus + allPerfectBonus;
+
+      return {
+        progress: {
+          ...state.progress,
+          xp: newXP,
+          level: getLevel(newXP),
+          completedLessons: newCompleted,
+          perfectLessons: newPerfect,
+        },
+      };
+    });
+    get().updateStreak();
+    get().saveToStorage();
+
+    // Sync to Firestore for ALL users
+    const uid = get().user.uid;
+    if (uid && get().user.isLoggedIn) {
+      const { progress, user } = get();
+      completeLessonInFirestore(uid!, lessonId, progress);
+      updateLeaderboardEntry(uid!, user.displayName || 'Anonymous', progress, user.avatar);
+    }
+  },
+
+  addXP: (amount) => {
+    set((state) => {
+      const newXP = state.progress.xp + amount;
+      return {
+        progress: { ...state.progress, xp: newXP, level: getLevel(newXP) },
+      };
+    });
+    get().saveToStorage();
+    
+    // Sync to Firestore
+    if (get().user.uid && get().user.isLoggedIn) {
+      const { progress, user } = get();
+      updateXPInFirestore(get().user.uid!, progress.xp, progress.level);
+      updateLeaderboardEntry(get().user.uid!, user.displayName || 'Anonymous', progress, user.avatar);
+    }
+  },
+
+  loseHeart: () => {
+    set((state) => ({
+      progress: { ...state.progress, hearts: Math.max(0, state.progress.hearts - 1) },
+    }));
+    get().saveToStorage();
+  },
+
+  resetHearts: () => {
+    set((state) => ({ progress: { ...state.progress, hearts: 5 } }));
+    get().saveToStorage();
+  },
+
+  updateStreak: () => {
+    const today = new Date().toDateString();
+    set((state) => {
+      const last = state.progress.lastActiveDate;
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      let newStreak = state.progress.streak;
+      if (last === today) {
+        // already active today
+      } else if (last === yesterday) {
+        newStreak += 1;
+      } else {
+        newStreak = 1; // broken streak — restart
+      }
+      return {
+        progress: { ...state.progress, streak: newStreak, lastActiveDate: today },
+      };
+    });
+    
+    // Sync streak to Firestore
+    const { progress } = get();
+    if (get().user.uid && get().user.isLoggedIn) {
+      updateStreakInFirestore(get().user.uid!, progress.streak, progress.lastActiveDate || '');
+    }
+  },
+
+  setAvatar: (avatar) => {
+    set((state) => ({ user: { ...state.user, avatar } }));
+    get().saveToStorage();
+    
+    // Sync to Firestore
+    if (get().user.uid && get().user.isLoggedIn) {
+      updateUserProfileInFirestore(get().user.uid!, { avatar });
+      // Also update leaderboard so friends see the new avatar immediately
+      const { progress, user } = get();
+      updateLeaderboardEntry(get().user.uid!, user.displayName || 'Anonymous', progress, avatar);
+    }
+  },
+
+  updateDisplayName: (name) => {
+    set((state) => ({ user: { ...state.user, displayName: name } }));
+    get().saveToStorage();
+    
+    // Sync to Firestore
+    if (get().user.uid && get().user.isLoggedIn) {
+      updateUserProfileInFirestore(get().user.uid!, { displayName: name });
+    }
+  },
+
+  setPhotoUri: (uri) => {
+    set((state) => ({ user: { ...state.user, photoUri: uri } }));
+    get().saveToStorage();
+  },
+
+  earnCertificate: () => {
+    set({ certificate: { earned: true, earnedAt: new Date().toISOString() } });
+    get().saveToStorage();
+    
+    // Sync to Firestore
+    if (get().user.uid && get().user.isLoggedIn) {
+      updateCertificateInFirestore(get().user.uid!, true);
+    }
+  },
+
+  loadFromStorage: async () => {
+    try {
+      const userStr = await AsyncStorage.getItem('menya_user');
+      const progressStr = await AsyncStorage.getItem('menya_progress');
+      const certStr = await AsyncStorage.getItem('menya_certificate');
+
+      // Parse user first
+      const parsedUser = userStr ? JSON.parse(userStr) : null;
+
+      // If no logged-in user stored, wipe everything and start fresh
+      // This prevents old user's data leaking to a new registration
+      if (!parsedUser || !parsedUser.isLoggedIn || !parsedUser.uid) {
+        await AsyncStorage.multiRemove([
+          'menya_user', 'menya_progress', 'menya_certificate',
+          'menya_progress_backup', 'menya_certificate_backup',
+        ]);
+        set({ user: defaultUser, progress: { ...defaultProgress }, certificate: { earned: false } });
+        return;
+      }
+
+      // Valid logged-in user — load their data
+      set({ user: { ...defaultUser, ...parsedUser } });
+
+      if (progressStr) {
+        const parsed = JSON.parse(progressStr);
+        const recalculated = {
+          ...defaultProgress,
+          ...parsed,
+          level: getLevel(parsed.xp ?? 0),
+          perfectLessons: parsed.perfectLessons ?? [],
+        };
+        set({ progress: recalculated });
+      }
+      if (certStr) {
+        const parsed = JSON.parse(certStr);
+        set({ certificate: parsed });
+      }
+
+      // Sync from Firestore for logged-in user
+      get().syncWithFirestore();
+    } catch (e) {
+      console.log('Storage load error:', e);
+      // On any error, reset to safe defaults
+      set({ user: defaultUser, progress: { ...defaultProgress }, certificate: { earned: false } });
+    }
+  },
+
+  saveToStorage: async () => {
+    try {
+      const { user, progress, certificate } = get();
+      await AsyncStorage.setItem('menya_user', JSON.stringify(user));
+      await AsyncStorage.setItem('menya_progress', JSON.stringify(progress));
+      await AsyncStorage.setItem('menya_certificate', JSON.stringify(certificate));
+    } catch (e) {
+      console.log('Storage save error:', e);
+    }
+  },
+
+  syncWithFirestore: async () => {
+    const { user, progress, certificate } = get();
+    if (!user.uid || !user.isLoggedIn) return;
+    
+    try {
+      // Try to load existing data from Firestore
+      const firestoreData = await loadUserData(user.uid);
+      
+      if (firestoreData) {
+        // Always restore Firestore data when logging in.
+        // The ONLY exception is a brand-new registration (no Firestore record exists yet,
+        // so firestoreData would be null above — this branch only runs when cloud data EXISTS).
+        // Merge: always take the higher of local vs cloud values so no progress is lost.
+        const mergedProgress = {
+          ...progress,
+          xp: Math.max(progress.xp, firestoreData.progress.xp),
+          streak: Math.max(progress.streak, firestoreData.progress.streak),
+          hearts: Math.max(progress.hearts, firestoreData.progress.hearts),
+          completedLessons: [
+            ...new Set([...progress.completedLessons, ...firestoreData.progress.completedLessons]),
+          ],
+          perfectLessons: [
+            ...new Set([...(progress.perfectLessons || []), ...(firestoreData.progress.perfectLessons || [])]),
+          ],
+        };
+        mergedProgress.level = getLevel(mergedProgress.xp);
+
+        set({
+          progress: mergedProgress,
+          certificate: firestoreData.certificate?.earned ? firestoreData.certificate : certificate,
+        });
+      } else {
+        // Fresh account — no cloud data exists.
+        // Do NOT restore any backup. The backup belonged to a previous user.
+        // Start completely fresh with default progress.
+        // Just save the empty state to Firestore to initialize the account.
+      }
+      
+      // Save current state to Firestore (re-read after possible backup restore)
+      const current = get();
+      await saveUserData(user.uid, current.user, current.progress, current.certificate);
+      // Publish the user's entry on the global leaderboard
+      await updateLeaderboardEntry(user.uid, current.user.displayName || 'Anonymous', current.progress);
+      
+      // Subscribe to real-time updates
+      subscribeToUserData(user.uid, (data) => {
+        if (data) {
+          // Update local state with Firestore data if it's newer
+          set((state) => ({
+            progress: {
+              ...state.progress,
+              ...data.progress,
+              level: getLevel(data.progress.xp),
+            },
+            certificate: data.certificate || state.certificate,
+          }));
+        }
+      });
+      
+      set({ isOnline: true });
+    } catch (error: any) {
+      // Silently handle offline errors - app still works without Firestore
+      if (error?.message?.includes('offline') || error?.code === 'unavailable') {
+        console.log('Firestore offline - using local storage only');
+      } else {
+        console.log('Firestore sync error:', error?.message || error);
+      }
+      set({ isOnline: false });
+    }
+  },
+}));
