@@ -58,91 +58,91 @@ interface ThemeColors {
 }
 
 const lightTheme: ThemeColors = {
-  background: '#F5F5F5',
+  background: '#F4F7F9',
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  
-  text: '#1A1A1A',
-  textSecondary: '#666666',
-  textMuted: '#999999',
-  
-  primary: '#20603D',
-  primaryLight: '#2D8653',
-  primaryDark: '#164a2e',
-  secondary: '#FAD201',
-  
-  success: '#4CAF50',
-  error: '#F44336',
-  warning: '#FF9800',
-  info: '#2196F3',
-  
-  border: '#E0E0E0',
-  divider: '#EEEEEE',
-  shadow: 'rgba(0,0,0,0.1)',
-  overlay: 'rgba(0,0,0,0.5)',
-  
+
+  text: '#14212B',
+  textSecondary: '#536471',
+  textMuted: '#83919D',
+
+  primary: '#0B6E84',
+  primaryLight: '#D9EEF3',
+  primaryDark: '#085468',
+  secondary: '#D9A441',
+
+  success: '#2F9E6E',
+  error: '#D64545',
+  warning: '#C9891C',
+  info: '#2B6CB0',
+
+  border: '#DCE5EA',
+  divider: '#E8EEF2',
+  shadow: 'rgba(20,33,43,0.08)',
+  overlay: 'rgba(12,28,36,0.45)',
+
   tabBar: '#FFFFFF',
-  tabBarBorder: '#E0E0E0',
-  tabActive: '#20603D',
-  tabInactive: '#999999',
-  
-  inputBg: '#F5F5F5',
-  inputBorder: '#E0E0E0',
-  inputText: '#1A1A1A',
-  placeholder: '#999999',
-  
-  badgeBg: '#F5F5F5',
-  badgeText: '#1A1A1A',
-  
-  xpOrange: '#FF6B35',
-  heartRed: '#FF5252',
-  starYellow: '#FFD700',
-  green: '#20603D',
-  blue: '#2196F3',
+  tabBarBorder: '#DCE5EA',
+  tabActive: '#0B6E84',
+  tabInactive: '#8A99A5',
+
+  inputBg: '#F7FAFB',
+  inputBorder: '#DCE5EA',
+  inputText: '#14212B',
+  placeholder: '#93A1AC',
+
+  badgeBg: '#EAF2F5',
+  badgeText: '#0B6E84',
+
+  xpOrange: '#C9891C',
+  heartRed: '#D64545',
+  starYellow: '#D9A441',
+  green: '#2F9E6E',
+  blue: '#2B6CB0',
 };
 
 const darkTheme: ThemeColors = {
-  background: '#121212',
-  surface: '#1E1E1E',
-  card: '#2D2D2D',
-  
-  text: '#FFFFFF',
-  textSecondary: '#B0B0B0',
-  textMuted: '#707070',
-  
-  primary: '#4CAF50',
-  primaryLight: '#66BB6A',
-  primaryDark: '#388E3C',
-  secondary: '#FAD201',
-  
-  success: '#66BB6A',
-  error: '#EF5350',
-  warning: '#FFA726',
-  info: '#42A5F5',
-  
-  border: '#3D3D3D',
-  divider: '#2D2D2D',
+  background: '#0E171D',
+  surface: '#16232B',
+  card: '#1B2B34',
+
+  text: '#F2F6F8',
+  textSecondary: '#A9B8C2',
+  textMuted: '#758591',
+
+  primary: '#4FB6C8',
+  primaryLight: '#123A44',
+  primaryDark: '#2E8FA3',
+  secondary: '#D9A441',
+
+  success: '#4CC38A',
+  error: '#F07171',
+  warning: '#E0A84A',
+  info: '#6CA9E0',
+
+  border: '#2A3B45',
+  divider: '#22323B',
   shadow: 'rgba(0,0,0,0.3)',
-  overlay: 'rgba(0,0,0,0.7)',
-  
-  tabBar: '#1E1E1E',
-  tabBarBorder: '#3D3D3D',
-  tabActive: '#4CAF50',
-  tabInactive: '#707070',
-  
-  inputBg: '#2D2D2D',
-  inputBorder: '#3D3D3D',
-  inputText: '#FFFFFF',
-  placeholder: '#707070',
-  
-  badgeBg: '#3D3D3D',
-  badgeText: '#FFFFFF',
-  
-  xpOrange: '#FF8A65',
-  heartRed: '#EF5350',
-  starYellow: '#FFD54F',
-  green: '#4CAF50',
-  blue: '#42A5F5',
+  overlay: 'rgba(0,0,0,0.65)',
+
+  tabBar: '#16232B',
+  tabBarBorder: '#2A3B45',
+  tabActive: '#4FB6C8',
+  tabInactive: '#758591',
+
+  inputBg: '#1B2B34',
+  inputBorder: '#2A3B45',
+  inputText: '#F2F6F8',
+  placeholder: '#758591',
+
+  badgeBg: '#22323B',
+  badgeText: '#F2F6F8',
+
+  xpOrange: '#E0A84A',
+  heartRed: '#F07171',
+  starYellow: '#D9A441',
+  green: '#4CC38A',
+  blue: '#6CA9E0',
 };
 
 interface ThemeContextType {

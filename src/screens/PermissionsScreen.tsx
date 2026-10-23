@@ -1,20 +1,41 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  View,
-  Text,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Animated,
-  ScrollView,
-  Platform,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as ImagePicker from 'expo-image-picker';
+import { Text } from '../components/ui/AppText';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import * as MediaLibrary from 'expo-media-library';
-import * as Camera from 'expo-camera';
+import { Camera } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppIcon } from '../components/ui/AppIcon';
+import { MenyaMascot } from '../components/MenyaMascot';
+import { useAppStore } from '../store/useAppStore';
+import {
+  registerForPushNotifications,
+  requestNotificationPermission,
+  scheduleStreakReminder,
+} from '../utils/notifications';
 
 const PERMISSIONS_DONE_KEY = 'menya_permissions_granted';
+
+const P = {
+  background: '#F4F7F9',
+  surface: '#FFFFFF',
+  ink: '#14212B',
+  muted: '#5C6B76',
+  border: '#DCE5EA',
+  primary: '#0B6E84',
+  primarySoft: '#E4F2F6',
+  success: '#2F9E6E',
+  successSoft: '#E6F6EE',
+  error: '#D64545',
+  errorSoft: '#FCEAEA',
+  white: '#FFFFFF',
+};
 
 interface PermissionItem {
   id: string;
@@ -30,217 +51,168 @@ interface Props {
 }
 
 export const PermissionsScreen: React.FC<Props> = ({ onDone }) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(40)).current;
-
+  const uid = useAppStore((state) => state.user.uid);
   const [permissions, setPermissions] = useState<PermissionItem[]>([
     {
       id: 'camera',
-      icon: '📷',
+      icon: 'camera',
       title: 'Camera',
-      description: 'Take your profile photo for your certificate and scan QR codes',
+      description: 'Scan QR codes and take a profile photo for your certificate.',
       required: true,
       status: 'pending',
     },
     {
       id: 'media',
-      icon: '🖼️',
-      title: 'Photo Library',
-      description: 'Choose a profile photo from your gallery and save your certificate PDF',
+      icon: 'image',
+      title: 'Photo library',
+      description: 'Choose a profile photo and save your certificate PDF.',
       required: true,
       status: 'pending',
     },
     {
-      id: 'microphone',
-      icon: '🎤',
-      title: 'Microphone',
-      description: 'Used for speech exercises to practice Kinyarwanda pronunciation',
+      id: 'notifications',
+      icon: 'bell',
+      title: 'Notifications',
+      description: 'Daily practice reminders and important Menya updates.',
       required: false,
       status: 'pending',
     },
   ]);
-
   const [requesting, setRequesting] = useState(false);
-  const [allDone, setAllDone] = useState(false);
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
-    ]).start();
-  }, []);
+  const [attempted, setAttempted] = useState(false);
 
   const updateStatus = (id: string, status: 'granted' | 'denied') => {
-    setPermissions(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+    setPermissions((previous) =>
+      previous.map((permission) => (permission.id === id ? { ...permission, status } : permission)),
+    );
   };
 
   const requestAll = async () => {
     setRequesting(true);
-
-    // 1. Camera — check current status first; if already granted in settings
-    //    Android will block a re-request and return 'denied', so we must
-    //    call getCameraPermissionsAsync() before requestCameraPermissionsAsync().
+    setAttempted(false);
     try {
-      let camStatus = (await Camera.getCameraPermissionsAsync()).status;
-      if (camStatus !== 'granted') {
-        const result = await Camera.requestCameraPermissionsAsync();
-        camStatus = result.status;
+      let cameraStatus = (await Camera.getCameraPermissionsAsync()).status;
+      if (cameraStatus !== 'granted') {
+        cameraStatus = (await Camera.requestCameraPermissionsAsync()).status;
       }
-      updateStatus('camera', camStatus === 'granted' ? 'granted' : 'denied');
-    } catch { updateStatus('camera', 'denied'); }
+      updateStatus('camera', cameraStatus === 'granted' ? 'granted' : 'denied');
+    } catch {
+      updateStatus('camera', 'denied');
+    }
 
-    // 2. Media Library — same pattern
     try {
       let mediaStatus = (await MediaLibrary.getPermissionsAsync()).status;
       if (mediaStatus !== 'granted') {
-        const result = await MediaLibrary.requestPermissionsAsync();
-        mediaStatus = result.status;
+        mediaStatus = (await MediaLibrary.requestPermissionsAsync()).status;
       }
       updateStatus('media', mediaStatus === 'granted' ? 'granted' : 'denied');
-    } catch { updateStatus('media', 'denied'); }
+    } catch {
+      updateStatus('media', 'denied');
+    }
 
-    // 3. Microphone — same pattern
     try {
-      let micStatus = (await ImagePicker.getCameraPermissionsAsync()).status;
-      if (micStatus !== 'granted') {
-        const result = await ImagePicker.requestCameraPermissionsAsync();
-        micStatus = result.status;
+      const notificationGranted = await requestNotificationPermission();
+      updateStatus('notifications', notificationGranted ? 'granted' : 'denied');
+      if (notificationGranted) {
+        await scheduleStreakReminder(20);
+        await registerForPushNotifications(uid);
       }
-      updateStatus('microphone', micStatus === 'granted' ? 'granted' : 'denied');
-    } catch { updateStatus('microphone', 'denied'); }
+    } catch {
+      updateStatus('notifications', 'denied');
+    }
 
     setRequesting(false);
-    setAllDone(true);
+    setAttempted(true);
   };
 
-  const handleContinue = async () => {
-    if (!requiredGranted) {
-      // Re-check + re-request
-      setAllDone(false);
-      await requestAll();
-      return;
-    }
-    await AsyncStorage.setItem(PERMISSIONS_DONE_KEY, 'true');
-    onDone();
-  };
-
-  const handleSkip = async () => {
-    // Allow user to continue without granting permissions — they can grant later
+  const finish = async () => {
     await AsyncStorage.setItem(PERMISSIONS_DONE_KEY, 'true');
     onDone();
   };
 
   const requiredGranted = permissions
-    .filter(p => p.required)
-    .every(p => p.status === 'granted');
+    .filter((permission) => permission.required)
+    .every((permission) => permission.status === 'granted');
 
   return (
-    <LinearGradient colors={['#0a1628', '#1a2a4a', '#0d3320']} style={styles.bg}>
-      <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        {/* Header */}
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <StatusBar style="dark" />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.appIcon}>🦍</Text>
-          <Text style={styles.title}>Menya needs a few permissions</Text>
+          <View style={styles.mascotWrap}>
+            <MenyaMascot size={118} />
+          </View>
+          <Text style={styles.title}>A few permissions</Text>
           <Text style={styles.subtitle}>
-            To give you the best learning experience, please allow the following:
+            Menya only asks for access when it helps you learn, scan, or save your certificate.
           </Text>
         </View>
 
-        {/* Permission items */}
-        <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-          {permissions.map((perm) => (
-            <View
-              key={perm.id}
-              style={[
-                styles.permItem,
-                perm.status === 'granted' && styles.permGranted,
-                perm.status === 'denied' && styles.permDenied,
-              ]}
-            >
-              <Text style={styles.permIcon}>{perm.icon}</Text>
-              <View style={styles.permText}>
-                <View style={styles.permTitleRow}>
-                  <Text style={styles.permTitle}>{perm.title}</Text>
-                  {perm.required && (
-                    <View style={styles.requiredBadge}>
-                      <Text style={styles.requiredText}>Required</Text>
-                    </View>
-                  )}
+        <View style={styles.list}>
+          {permissions.map((permission) => {
+            const granted = permission.status === 'granted';
+            const denied = permission.status === 'denied';
+            return (
+              <View
+                key={permission.id}
+                style={[
+                  styles.permissionCard,
+                  granted && styles.permissionGranted,
+                  denied && styles.permissionDenied,
+                ]}
+              >
+                <View style={styles.permissionIcon}>
+                  <AppIcon name={permission.icon} size={22} color={P.primary} />
                 </View>
-                <Text style={styles.permDesc}>{perm.description}</Text>
+                <View style={styles.permissionCopy}>
+                  <View style={styles.permissionTitleRow}>
+                    <Text style={styles.permissionTitle}>{permission.title}</Text>
+                    {!permission.required && (
+                      <Text style={styles.optionalLabel}>Optional</Text>
+                    )}
+                  </View>
+                  <Text style={styles.permissionDescription}>{permission.description}</Text>
+                  {granted && <Text style={styles.grantedLabel}>Allowed</Text>}
+                  {denied && <Text style={styles.deniedLabel}>Not now</Text>}
+                </View>
+                {granted && <AppIcon name="checkCircle" size={22} color={P.success} />}
               </View>
-              <Text style={styles.permStatus}>
-                {perm.status === 'granted' ? '✅' : perm.status === 'denied' ? '❌' : '⏳'}
-              </Text>
-            </View>
-          ))}
-
-          {/* Denied note */}
-          {allDone && !requiredGranted && (
-            <View style={styles.deniedNote}>
-              <Text style={styles.deniedNoteText}>
-                ⚠️ Some required permissions were denied. You can enable them in your phone Settings → Apps → Menya → Permissions.
-              </Text>
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Buttons */}
-        <View style={styles.footer}>
-          {!allDone ? (
-            <>
-              <TouchableOpacity
-                style={[styles.btn, styles.btnPrimary, requesting && styles.btnDisabled]}
-                onPress={requestAll}
-                disabled={requesting}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.btnText}>
-                  {requesting ? 'Requesting...' : '🔓 Allow Permissions'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.btn, styles.btnSecondary]}
-                onPress={handleSkip}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.btnTextSecondary}>Skip for now →</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={[styles.btn, styles.btnPrimary]}
-                onPress={handleContinue}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.btnText}>
-                  {requiredGranted ? '✅ Continue to Menya →' : '⚠️ Try Again'}
-                </Text>
-              </TouchableOpacity>
-              {!requiredGranted && (
-                <>
-                  <Text style={styles.mandatoryNote}>
-                    Camera and Photo Library permissions are required for full functionality. You can also grant them later in Settings.
-                  </Text>
-                  <TouchableOpacity
-                    style={[styles.btn, styles.btnSecondary]}
-                    onPress={handleSkip}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.btnTextSecondary}>Skip for now →</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </>
-          )}
+            );
+          })}
         </View>
-      </Animated.View>
-    </LinearGradient>
+
+        {attempted && !requiredGranted && (
+          <View style={styles.note}>
+            <AppIcon name="info" size={17} color={P.primary} />
+            <Text style={styles.noteText}>
+              Camera and photo access are required for the full experience. You can
+              enable any permission later in Settings → Apps → Menya → Permissions.
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.spacer} />
+
+        <TouchableOpacity
+          style={[styles.primaryButton, requesting && styles.buttonDisabled]}
+          onPress={requiredGranted ? finish : requestAll}
+          disabled={requesting}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.primaryButtonText}>
+            {requesting ? 'Requesting…' : requiredGranted ? 'Continue' : 'Allow access'}
+          </Text>
+          <AppIcon name={requiredGranted ? 'arrowRight' : 'shield'} size={19} color={P.white} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.skipButton} onPress={finish} activeOpacity={0.7}>
+          <Text style={styles.skipText}>Maybe later</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
-// ── Helper to check if permissions screen has been shown ──
 export const shouldShowPermissions = async (): Promise<boolean> => {
   try {
     const done = await AsyncStorage.getItem(PERMISSIONS_DONE_KEY);
@@ -251,94 +223,157 @@ export const shouldShowPermissions = async (): Promise<boolean> => {
 };
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 70, paddingBottom: 30 },
-
-  header: { alignItems: 'center', marginBottom: 32 },
-  appIcon: { fontSize: 64, marginBottom: 16 },
+  safeArea: {
+    flex: 1,
+    backgroundColor: P.background,
+  },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 18,
+  },
+  header: {
+    alignItems: 'center',
+  },
+  mascotWrap: {
+    width: 136,
+    height: 136,
+    borderRadius: 68,
+    backgroundColor: '#E4EEF2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    overflow: 'hidden',
+  },
   title: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontSize: 27,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: P.ink,
     textAlign: 'center',
-    marginBottom: 10,
-    lineHeight: 30,
   },
   subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.65)',
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: P.muted,
     textAlign: 'center',
-    lineHeight: 21,
+    marginTop: 8,
+    maxWidth: 310,
   },
-
-  list: { flex: 1 },
-
-  permItem: {
+  list: {
+    gap: 12,
+    marginTop: 28,
+  },
+  permissionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    gap: 14,
+    gap: 12,
+    padding: 15,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: P.border,
+    backgroundColor: P.surface,
   },
-  permGranted: {
-    backgroundColor: 'rgba(32,96,61,0.25)',
-    borderColor: '#20603D',
+  permissionGranted: {
+    borderColor: P.success,
+    backgroundColor: P.successSoft,
   },
-  permDenied: {
-    backgroundColor: 'rgba(231,76,60,0.15)',
-    borderColor: '#E74C3C',
+  permissionDenied: {
+    borderColor: P.error,
+    backgroundColor: P.errorSoft,
   },
-  permIcon: { fontSize: 28 },
-  permText: { flex: 1 },
-  permTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  permTitle: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
-  requiredBadge: {
-    backgroundColor: '#FFD70033',
-    borderWidth: 1,
-    borderColor: '#FFD700',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  requiredText: { fontSize: 9, color: '#FFD700', fontWeight: '700' },
-  permDesc: { fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 17 },
-  permStatus: { fontSize: 22 },
-
-  deniedNote: {
-    backgroundColor: 'rgba(231,76,60,0.15)',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E74C3C44',
-  },
-  deniedNoteText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 18 },
-
-  footer: { gap: 10, paddingTop: 16 },
-  btn: {
-    borderRadius: 14,
-    paddingVertical: 16,
+  permissionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: P.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnPrimary: { backgroundColor: '#20603D' },
-  btnSecondary: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+  permissionCopy: {
+    flex: 1,
   },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
-  btnTextSecondary: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' },
-  mandatoryNote: {
-    color: '#FFD700',
+  permissionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  permissionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: P.ink,
+  },
+  optionalLabel: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: P.muted,
+    backgroundColor: P.background,
+    borderRadius: 5,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  permissionDescription: {
     fontSize: 12,
-    textAlign: 'center',
+    lineHeight: 17,
+    color: P.muted,
+    marginTop: 3,
+  },
+  grantedLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: P.success,
+    marginTop: 5,
+  },
+  deniedLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: P.error,
+    marginTop: 5,
+  },
+  note: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: P.primarySoft,
+  },
+  noteText: {
+    flex: 1,
+    fontSize: 12,
     lineHeight: 18,
-    paddingHorizontal: 8,
+    color: P.muted,
+  },
+  spacer: {
+    flex: 1,
+    minHeight: 24,
+  },
+  primaryButton: {
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: P.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.65,
+  },
+  primaryButtonText: {
+    color: P.white,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  skipButton: {
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  skipText: {
+    color: P.muted,
+    fontSize: 13.5,
+    fontWeight: '600',
   },
 });

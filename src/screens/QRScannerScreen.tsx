@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
   Dimensions,
   Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
 import { useTheme } from '../theme/themeContext';
 import { AppModal } from '../components/AppModal';
@@ -104,9 +103,9 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   // ── No expo-camera ──
   if (!CameraView) {
     return (
-      <LinearGradient colors={['#0a1628', '#1a2a4a']} style={styles.bg}>
+      <View style={styles.bg}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorEmoji}>📷</Text>
+          <View style={styles.errorIconWrap}><AppIcon name="camera" size={30} color="#FFFFFF" /></View>
           <Text style={styles.errorTitle}>Kamera ntiboneka</Text>
           <Text style={styles.errorMsg}>
             Serivisi ya kamera ntabwo yashyizwe ahazaza. Ongera ubike application.
@@ -115,16 +114,16 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             <Text style={styles.backBtnText}>← Subira</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
   // ── No permission ──
   if (!permission?.granted) {
     return (
-      <LinearGradient colors={['#0a1628', '#1a2a4a']} style={styles.bg}>
+      <View style={styles.bg}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorEmoji}>🔒</Text>
+          <View style={styles.errorIconWrap}><AppIcon name="lock" size={30} color="#FFFFFF" /></View>
           <Text style={styles.errorTitle}>Uburenganzira bwa Kamera</Text>
           <Text style={styles.errorMsg}>
             Tugusaba uburenganzira bwo gukoresha kamera kugira ngo uscanye QR code.
@@ -136,16 +135,16 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             <Text style={styles.backBtnText}>← Subira</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
   // ── Certificate result ──
   if (certData) {
     return (
-      <LinearGradient colors={['#0a1628', '#1a2a4a', '#0d3320']} style={styles.bg}>
+      <View style={styles.bg}>
         <View style={styles.resultContainer}>
-          <Text style={styles.resultTitle}>✅ Impamyabumenyi Nyayo!</Text>
+          <View style={styles.resultTitleRow}><AppIcon name="checkCircle" size={24} color="#4CC38A" /><Text style={styles.resultTitle}>Impamyabumenyi Nyayo!</Text></View>
           <Text style={styles.resultSubtitle}>Valid Menya Certificate</Text>
 
           {/* Profile photo */}
@@ -156,7 +155,7 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             />
           ) : (
             <View style={[styles.resultPhoto, styles.resultPhotoPlaceholder]}>
-              <Text style={{ fontSize: 48 }}>👤</Text>
+              <AppIcon name="user" size={48} color="rgba(255,255,255,0.5)" />
               {certData.hasPhoto && (
                 <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
                   Photo on this device only
@@ -173,20 +172,20 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
           </View>
 
           <View style={styles.verifiedBadge}>
-            <Text style={styles.verifiedText}>🇷🇼 Verified by Menya App</Text>
+            <View style={styles.verifiedRow}><AppIcon name="shield" size={14} color="#2F9E6E" /><Text style={styles.verifiedText}>Verified by Menya App</Text></View>
           </View>
 
           <TouchableOpacity
             style={styles.scanAgainBtn}
             onPress={() => { setCertData(null); setScanned(false); }}
           >
-            <Text style={styles.scanAgainText}>🔄 Scan Another</Text>
+            <AppIcon name="refresh" size={16} color="#FFFFFF" /><Text style={styles.scanAgainText}>Scan Another</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.backBtnText}>← Subira</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -223,7 +222,7 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
 
         {/* Bottom dark area */}
         <View style={[styles.overlaySegment, { flex: 1 }]}>
-          <Text style={styles.scanLabel}>🦍 Scan Menya Certificate QR Code</Text>
+          <View style={styles.scanLabelRow}><AppIcon name="qrCode" size={18} color="#FFFFFF" /><Text style={styles.scanLabel}>Scan Menya Certificate QR Code</Text></View>
           <Text style={styles.scanSub}>Menya certificates only • Other QR codes will be rejected</Text>
           <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -234,10 +233,10 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
       {/* Invalid QR modal */}
       <AppModal
         visible={showInvalid}
-        title="❌ QR Code Siyo"
+        title="QR Code Siyo"
         message="Iyi QR code si iya Menya Certificate. Scan gusa impamyabumenyi za Menya App."
         type="error"
-        icon="🚫"
+        icon="closeCircle"
         showCancel={false}
         confirmText="Gerageza Nanone"
         onConfirm={() => { setShowInvalid(false); setScanned(false); }}
@@ -261,7 +260,7 @@ const styles = StyleSheet.create({
   cameraContainer: { flex: 1 },
 
   // Overlay
-  overlay: { ...StyleSheet.absoluteFillObject, flexDirection: 'column' },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'column' },
   overlaySegment: { backgroundColor: 'rgba(0,0,0,0.65)' },
   overlayMiddle: { flexDirection: 'row', height: SCAN_SIZE },
   scanWindow: {
@@ -276,9 +275,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: '#20603D',
+    backgroundColor: '#0B6E84',
     opacity: 0.9,
-    shadowColor: '#20603D',
+    shadowColor: '#0B6E84',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 6,
@@ -289,7 +288,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: CORNER_SIZE,
     height: CORNER_SIZE,
-    borderColor: '#FFD700',
+    borderColor: '#D9A441',
     borderWidth: CORNER_WIDTH,
   },
   cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 4 },
@@ -298,7 +297,7 @@ const styles = StyleSheet.create({
   cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 4 },
 
   // Labels
-  scanLabel: { color: '#FFFFFF', fontWeight: '800', fontSize: 15, textAlign: 'center', marginTop: 20, paddingHorizontal: 20 },
+  scanLabel: { color: '#FFFFFF', fontWeight: '800', fontSize: 15, textAlign: 'center' },
   scanSub: { color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', marginTop: 6, paddingHorizontal: 20 },
   cancelBtn: {
     alignSelf: 'center',
@@ -312,17 +311,26 @@ const styles = StyleSheet.create({
 
   // Error / no camera
   errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  errorEmoji: { fontSize: 60, marginBottom: 16 },
+  errorIconWrap: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
   errorTitle: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', marginBottom: 10 },
   errorMsg: { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 22, marginBottom: 24 },
-  permBtn: { backgroundColor: '#20603D', paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12 },
+  permBtn: { backgroundColor: '#0B6E84', paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12 },
   permBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
   backBtn: { backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10, marginTop: 8 },
   backBtnText: { color: '#FFFFFF', fontWeight: '700' },
 
   // Result
   resultContainer: { flex: 1, alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 },
-  resultTitle: { fontSize: 24, fontWeight: '900', color: '#FFD700', marginBottom: 4 },
+  resultTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  resultTitle: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
   resultSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 20, fontStyle: 'italic' },
   resultPhoto: {
     width: 110,
@@ -344,23 +352,29 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowLabel: { fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
   rowValue: { fontSize: 14, color: '#FFFFFF', fontWeight: '700', maxWidth: '60%', textAlign: 'right' },
-  rowMono: { fontSize: 11, fontFamily: 'monospace', color: '#FFD700' },
+  rowMono: { fontSize: 11, fontFamily: 'monospace', color: '#D9A441' },
   verifiedBadge: {
-    backgroundColor: '#20603D33',
+    backgroundColor: '#0B6E8433',
     borderWidth: 1,
-    borderColor: '#20603D',
+    borderColor: '#0B6E84',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginBottom: 20,
   },
-  verifiedText: { color: '#20603D', fontWeight: '800', fontSize: 13 },
+  verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  verifiedText: { color: '#2F9E6E', fontWeight: '800', fontSize: 13 },
   scanAgainBtn: {
-    backgroundColor: '#20603D',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: '#0B6E84',
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 12,
     marginBottom: 10,
   },
   scanAgainText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
+  scanLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 20, paddingHorizontal: 20 },
 });

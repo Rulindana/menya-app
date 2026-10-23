@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, onSnapshot, updateDoc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, collection, query, orderBy, limit } from 'firebase/firestore';
 import { db, auth } from './config';
 import { UserProfile, UserProgress } from '../store/useAppStore';
 
@@ -43,6 +43,7 @@ export const saveUserData = async (
   certificate?: { earned: boolean; earnedAt?: string }
 ): Promise<void> => {
   if (!isAuthenticated(uid)) return;
+  if (!db) return;
   try {
     const userRef = doc(db, 'users', uid);
     
@@ -69,7 +70,7 @@ export const saveUserData = async (
     };
 
     await setDoc(userRef, userData, { merge: true });
-    console.log('✅ User data saved to Firestore');
+    console.log('User data saved to Firestore');
   } catch (error: any) {
     // Silently handle offline errors
     if (error?.message?.includes('offline') || error?.code === 'unavailable') {
@@ -82,6 +83,7 @@ export const saveUserData = async (
 // Load user data from Firestore
 export const loadUserData = async (uid: string): Promise<FirestoreUserData | null> => {
   if (!isAuthenticated(uid)) return null;
+  if (!db) return null;
   try {
     const userRef = doc(db, 'users', uid);
     const userSnap = await getDoc(userRef);
@@ -101,6 +103,7 @@ export const subscribeToUserData = (
   callback: (data: FirestoreUserData | null) => void
 ) => {
   if (!isAuthenticated(uid)) return () => {};
+  if (!db) return () => {};
   const userRef = doc(db, 'users', uid);
   return onSnapshot(userRef, (doc) => {
     if (doc.exists()) {
@@ -116,9 +119,51 @@ export const subscribeToUserData = (
   });
 };
 
+// Update hearts in Firestore
+export const updateHeartsInFirestore = async (
+  uid: string,
+  hearts: number,
+  nextHeartAt: number | null
+): Promise<void> => {
+  if (!isAuthenticated(uid)) return;
+  if (!db) return;
+  try {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, {
+      'progress.hearts': hearts,
+      'progress.nextHeartAt': nextHeartAt,
+      'updatedAt': new Date().toISOString(),
+    });
+  } catch (error) {
+    // Silent
+  }
+};
+
+// Register a device push token on the user's profile.
+export const savePushTokenToFirestore = async (
+  uid: string,
+  token: string,
+): Promise<boolean> => {
+  if (!isAuthenticated(uid)) return false;
+  if (!db) return false;
+  if (!token) return false;
+  try {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, {
+      'profile.pushTokens': arrayUnion(token),
+      'profile.pushTokenUpdatedAt': new Date().toISOString(),
+      'updatedAt': new Date().toISOString(),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // Update streak in Firestore
 export const updateStreakInFirestore = async (uid: string, streak: number, lastActiveDate: string): Promise<void> => {
   if (!isAuthenticated(uid)) return;
+  if (!db) return;
   try {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, {
@@ -135,6 +180,7 @@ export const updateStreakInFirestore = async (uid: string, streak: number, lastA
 // Update XP in Firestore
 export const updateXPInFirestore = async (uid: string, xp: number, level: number): Promise<void> => {
   if (!isAuthenticated(uid)) return;
+  if (!db) return;
   try {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, {
@@ -155,6 +201,7 @@ export const completeLessonInFirestore = async (
   progress: UserProgress
 ): Promise<void> => {
   if (!isAuthenticated(uid)) return;
+  if (!db) return;
   try {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, {
@@ -172,6 +219,7 @@ export const updateCertificateInFirestore = async (
   uid: string, earned: boolean
 ): Promise<void> => {
   if (!isAuthenticated(uid)) return;
+  if (!db) return;
   try {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, {
@@ -204,6 +252,7 @@ export const updateLeaderboardEntry = async (
   avatar?: string
 ): Promise<void> => {
   if (!isAuthenticated(uid)) return;
+  if (!db) return;
   try {
     await setDoc(
       doc(db, 'leaderboard', uid),
@@ -230,6 +279,7 @@ export const subscribeToLeaderboard = (
     callback([]);
     return () => {};
   }
+  if (!db) { callback([]); return () => {}; }
   const q = query(collection(db, 'leaderboard'), orderBy('xp', 'desc'), limit(50));
   return onSnapshot(
     q,
@@ -248,10 +298,15 @@ export const updateUserProfileInFirestore = async (
   uid: string, profile: Partial<UserProfile>
 ): Promise<void> => {
   if (!isAuthenticated(uid)) return;
+  if (!db) return;
   try {
     const userRef = doc(db, 'users', uid);
+    const profileFields: Record<string, unknown> = {};
+    Object.entries(profile).forEach(([key, value]) => {
+      profileFields[`profile.${key}`] = value;
+    });
     await updateDoc(userRef, {
-      'profile': profile,
+      ...profileFields,
       'updatedAt': new Date().toISOString(),
     });
   } catch (error) {
@@ -276,6 +331,7 @@ export const createGameRoom = async (
   hostUid: string,
   hostName: string
 ): Promise<void> => {
+  if (!db) return;
   try {
     await setDoc(doc(db, 'gameRooms', code), {
       code,
@@ -297,6 +353,7 @@ export const joinGameRoom = async (
   joinerUid: string,
   joinerName: string
 ): Promise<boolean> => {
+  if (!db) return false;
   try {
     const roomRef = doc(db, 'gameRooms', code);
     const roomSnap = await getDoc(roomRef);
@@ -320,6 +377,7 @@ export const subscribeToGameRoom = (
   code: string,
   callback: (room: GameRoom | null) => void
 ): (() => void) => {
+  if (!db) { callback(null); return () => {}; }
   const roomRef = doc(db, 'gameRooms', code);
   return onSnapshot(roomRef, (doc) => {
     if (doc.exists()) {
@@ -335,6 +393,7 @@ export const subscribeToGameRoom = (
 
 // Update room status to playing
 export const startGameRoom = async (code: string): Promise<void> => {
+  if (!db) return;
   try {
     await updateDoc(doc(db, 'gameRooms', code), {
       status: 'playing',

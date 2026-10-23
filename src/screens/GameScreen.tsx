@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  TextInput,
 } from 'react-native';
+import { Text } from '../components/ui/AppText';
+import { TextInput } from '../components/ui/AppTextInput';
 import { AppModal } from '../components/AppModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../components/ui/AppIcon';
@@ -24,7 +24,7 @@ const TOTAL_QUESTIONS = 10;
 export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
   const { user, addXP } = useAppStore();
-  
+
   const [gameMode, setGameMode] = useState<GameMode>('menu');
   const [gameType, setGameType] = useState<'ai' | 'multiplayer'>('ai');
   const [questions, setQuestions] = useState<GameQuestion[]>([]);
@@ -38,7 +38,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [gameOver, setGameOver] = useState(false);
   const [player1Name] = useState(user?.displayName || 'You');
   const [player2Name, setPlayer2Name] = useState('AI');
-  
+
   // Room code system
   const [roomCode, setRoomCode] = useState('');
   const [joinCode, setJoinCode] = useState('');
@@ -144,13 +144,13 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleAnswer = (answer: string) => {
     if (showResult) return;
-    
+
     setSelectedAnswer(answer);
     setShowResult(true);
-    
+
     const correct = answer === currentQuestion.answer;
     setIsCorrect(correct);
-    
+
     if (correct) {
       if (currentTurn === 'player1') {
         setPlayer1Score(s => s + 1);
@@ -158,7 +158,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         setPlayer2Score(s => s + 1);
       }
     }
-    
+
     setTimeout(() => {
       if (currentQuestionIdx + 1 >= TOTAL_QUESTIONS) {
         setGameOver(true);
@@ -199,16 +199,16 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   if (gameMode === 'menu') {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.header}>
-          <Text style={styles.headerTitle}>🎮 Ibisakuzo</Text>
+        <LinearGradient colors={[colors.primary, colors.primary]} style={styles.header}>
+          <Text style={styles.headerTitle}>Ibisakuzo</Text>
           <Text style={styles.headerSubtitle}>Ibisakuzo 10</Text>
         </LinearGradient>
 
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Hitamo Uburyo bwo Gukina</Text>
-          
+
           {/* Play vs AI */}
-          <AnimatedButton 
+          <AnimatedButton
             style={[styles.modeCard, { backgroundColor: colors.card }]}
             onPress={startAIGame}
           >
@@ -216,7 +216,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <AppIcon name="bot" size={32} color={colors.primary} />
             </View>
             <View style={styles.modeInfo}>
-              <Text style={[styles.modeTitle, { color: colors.text }]}>Fungura na Robot 🤖</Text>
+              <Text style={[styles.modeTitle, { color: colors.text }]}>Fungura na Robot</Text>
               <Text style={[styles.modeDesc, { color: colors.textSecondary }]}>
                 Shakisha na mudasobwa • ibisakuzo 10
               </Text>
@@ -228,7 +228,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </AnimatedButton>
 
           {/* Create Room */}
-          <AnimatedButton 
+          <AnimatedButton
             style={[styles.modeCard, { backgroundColor: colors.card }]}
             onPress={createRoom}
           >
@@ -236,7 +236,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <AppIcon name="users" size={32} color={colors.xpOrange} />
             </View>
             <View style={styles.modeInfo}>
-              <Text style={[styles.modeTitle, { color: colors.text }]}>Fungura Iciro 🏠</Text>
+              <Text style={[styles.modeTitle, { color: colors.text }]}>Fungura Iciro</Text>
               <Text style={[styles.modeDesc, { color: colors.textSecondary }]}>
                 Shakisha kode & ugabane n'abakendi
               </Text>
@@ -248,7 +248,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </AnimatedButton>
 
           {/* Join Room */}
-          <AnimatedButton 
+          <AnimatedButton
             style={[styles.modeCard, { backgroundColor: colors.card }]}
             onPress={() => setGameMode('lobby')}
           >
@@ -256,7 +256,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <AppIcon name="copy" size={32} color={colors.success} />
             </View>
             <View style={styles.modeInfo}>
-              <Text style={[styles.modeTitle, { color: colors.text }]}>Jya mu Iciro 🔗</Text>
+              <Text style={[styles.modeTitle, { color: colors.text }]}>Jya mu Iciro</Text>
               <Text style={[styles.modeDesc, { color: colors.textSecondary }]}>
                 Shyiramo kode kugira ngo ujye ku mugenzi
               </Text>
@@ -277,12 +277,12 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   if (gameMode === 'lobby') {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <LinearGradient colors={[colors.xpOrange, '#E55A2B']} style={styles.header}>
+        <LinearGradient colors={[colors.xpOrange, colors.xpOrange]} style={styles.header}>
           <TouchableOpacity onPress={resetGame} style={styles.backBtnWhite}>
             <Text style={styles.backTextWhite}>← Subira</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {isHost ? '🏠 Iciro cyawe' : roomCreated ? '🔗 Wabonetse Iciro' : '🔗 Jya mu Iciro'}
+            {isHost ? 'Iciro cyawe' : roomCreated ? 'Wabonetse Iciro' : 'Jya mu Iciro'}
           </Text>
           <Text style={styles.headerSubtitle}>
             {isHost ? 'Gabana kode n\'umugenzi' : roomCreated ? 'Ugomba gukina na ' + player2Name : 'Shyiramo kode y\'iciro'}
@@ -296,12 +296,12 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               {/* Player names */}
               <View style={styles.playerRow}>
                 <View style={[styles.playerAvatar, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.playerEmoji}>👤</Text>
+                  <AppIcon name="user" size={20} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.playerName, { color: colors.text }]}>{player1Name}</Text>
                 <Text style={[styles.vsLabel, { color: colors.textMuted }]}>vs</Text>
                 <View style={[styles.playerAvatar, { backgroundColor: opponentJoined ? colors.xpOrange : colors.border }]}>
-                  <Text style={styles.playerEmoji}>{opponentJoined ? '👤' : '?'}</Text>
+                  <AppIcon name={opponentJoined ? 'user' : 'help'} size={20} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.playerName, { color: opponentJoined ? colors.text : colors.textMuted }]}>                    {opponentJoined ? player2Name : 'Gutegereza...'}</Text>
               </View>
@@ -309,7 +309,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <View style={[styles.roomCodeBox, { backgroundColor: colors.background }]}>
                 <Text style={[styles.roomCode, { color: colors.primary }]}>{roomCode}</Text>
               </View>
-              <AnimatedButton 
+              <AnimatedButton
                 style={[styles.copyBtn, { backgroundColor: colors.primary }]}
                 onPress={() => {
                   setCopiedCode(roomCode);
@@ -321,16 +321,16 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               </AnimatedButton>
 
               {opponentJoined ? (
-                <AnimatedButton 
+                <AnimatedButton
                   style={[styles.startBtn, { backgroundColor: colors.primary }]}
                   onPress={startGameFromLobby}
                 >
-                  <Text style={styles.startBtnText}>Tangira Ukina! 🎮</Text>
+                  <Text style={styles.startBtnText}>Tangira Ukina!</Text>
                 </AnimatedButton>
               ) : (
                 <View style={[styles.waitingBox, { backgroundColor: colors.background }]}>
                   <Text style={[styles.waitingText, { color: colors.textSecondary }]}>
-                    ⏳ Gutegereza umukiriya...
+                    Gutegereza umukiriya...
                   </Text>
                   <Text style={[styles.waitingHint, { color: colors.textMuted }]}>
                     Gabana iyi kode: {roomCode}
@@ -347,21 +347,21 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               {/* Player names */}
               <View style={styles.playerRow}>
                 <View style={[styles.playerAvatar, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.playerEmoji}>👤</Text>
+                  <AppIcon name="user" size={20} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.playerName, { color: colors.text }]}>{player1Name}</Text>
                 <Text style={[styles.vsLabel, { color: colors.textMuted }]}>vs</Text>
                 <View style={[styles.playerAvatar, { backgroundColor: colors.xpOrange }]}>
-                  <Text style={styles.playerEmoji}>👤</Text>
+                  <AppIcon name="user" size={20} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.playerName, { color: colors.text }]}>{player2Name}</Text>
               </View>
 
-              <AnimatedButton 
+              <AnimatedButton
                 style={[styles.startBtn, { backgroundColor: colors.primary }]}
                 onPress={startGameFromLobby}
               >
-                <Text style={styles.startBtnText}>Tangira Ukina! 🎮</Text>
+                <Text style={styles.startBtnText}>Tangira Ukina!</Text>
               </AnimatedButton>
             </View>
           ) : (
@@ -371,10 +371,10 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 Shyiramo Kode y\'Iciro
               </Text>
               <TextInput
-                style={[styles.codeInput, { 
-                  backgroundColor: colors.background, 
+                style={[styles.codeInput, {
+                  backgroundColor: colors.background,
                   color: colors.text,
-                  borderColor: joinCode.length === 6 ? colors.primary : colors.border 
+                  borderColor: joinCode.length === 6 ? colors.primary : colors.border
                 }]}
                 placeholder="Shyiramo kode y'inyuguti 6"
                 placeholderTextColor={colors.textMuted}
@@ -388,9 +388,9 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   Kode igomba kuba ifite inyuguti 6
                 </Text>
               )}
-              <AnimatedButton 
-                style={[styles.joinBtn, { 
-                  backgroundColor: joinCode.length >= 6 ? colors.primary : colors.border 
+              <AnimatedButton
+                style={[styles.joinBtn, {
+                  backgroundColor: joinCode.length >= 6 ? colors.primary : colors.border
                 }]}
                 onPress={joinRoom}
                 disabled={joinCode.length < 6}
@@ -414,34 +414,34 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <TouchableOpacity onPress={resetGame} style={styles.backBtn}>
           <Text style={[styles.backText, { color: colors.primary }]}>← Subira</Text>
         </TouchableOpacity>
-        
-        <View style={[styles.gameTypeBadge, { 
-          backgroundColor: gameType === 'ai' ? colors.primary + '20' : colors.xpOrange + '20' 
+
+        <View style={[styles.gameTypeBadge, {
+          backgroundColor: gameType === 'ai' ? colors.primary + '20' : colors.xpOrange + '20'
         }]}>
           {gameType === 'ai' ? (
             <AppIcon name="bot" size={14} color={colors.primary} />
           ) : (
             <AppIcon name="users" size={14} color={colors.xpOrange} />
           )}
-          <Text style={[styles.gameTypeText, { 
-            color: gameType === 'ai' ? colors.primary : colors.xpOrange 
+          <Text style={[styles.gameTypeText, {
+            color: gameType === 'ai' ? colors.primary : colors.xpOrange
           }]}>
             {gameType === 'ai' ? 'na Robot' : 'na Umukinzi'}
           </Text>
         </View>
-        
+
         <View style={styles.progressContainer}>
           <Text style={[styles.questionCounter, { color: colors.text }]}>
             {currentQuestionIdx + 1}/{TOTAL_QUESTIONS}
           </Text>
           <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-            <View style={[styles.progressFill, { 
+            <View style={[styles.progressFill, {
               width: `${((currentQuestionIdx + 1) / TOTAL_QUESTIONS) * 100}%`,
-              backgroundColor: gameType === 'ai' ? colors.primary : colors.xpOrange 
+              backgroundColor: gameType === 'ai' ? colors.primary : colors.xpOrange
             }]} />
           </View>
         </View>
-        
+
         <View style={styles.scoreContainer}>
           <View style={styles.scoreItem}>
             <Text style={[styles.scoreName, { color: colors.primary }]}>{player1Name}</Text>
@@ -451,10 +451,10 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </View>
           <Text style={[styles.vsText, { color: colors.textMuted }]}>na</Text>
           <View style={styles.scoreItem}>
-            <View style={[styles.scoreBadge, { backgroundColor: gameType === 'ai' ? colors.xpOrange : '#9C27B0' }]}>
+            <View style={[styles.scoreBadge, { backgroundColor: gameType === 'ai' ? colors.xpOrange : '#7C5CBF' }]}>
               <Text style={styles.scoreText}>{player2Score}</Text>
             </View>
-            <Text style={[styles.scoreName, { color: gameType === 'ai' ? colors.xpOrange : '#9C27B0' }]}>
+            <Text style={[styles.scoreName, { color: gameType === 'ai' ? colors.xpOrange : '#7C5CBF' }]}>
               {player2Name}
             </Text>
           </View>
@@ -462,16 +462,16 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       </View>
 
       {/* Turn Indicator */}
-      <View style={[styles.turnBanner, { 
-        backgroundColor: currentTurn === 'player1' ? colors.primary + '20' : 
-                        gameType === 'ai' ? colors.xpOrange + '20' : '#9C27B020'
+      <View style={[styles.turnBanner, {
+        backgroundColor: currentTurn === 'player1' ? colors.primary + '20' :
+                        gameType === 'ai' ? colors.xpOrange + '20' : '#7C5CBF20'
       }]}>
-        <Text style={[styles.turnText, { 
-          color: currentTurn === 'player1' ? colors.primary : 
-                gameType === 'ai' ? colors.xpOrange : '#9C27B0'
+        <Text style={[styles.turnText, {
+          color: currentTurn === 'player1' ? colors.primary :
+                gameType === 'ai' ? colors.xpOrange : '#7C5CBF'
         }]}>
-          {currentTurn === 'player1' ? `👤 ${player1Name} igihe cye` : 
-           gameType === 'ai' ? `🤖 ${player2Name} igihe cye` : `👤 ${player2Name} igihe cye`}
+          {currentTurn === 'player1' ? `${player1Name} igihe cye` :
+           gameType === 'ai' ? `${player2Name} igihe cye` : `${player2Name} igihe cye`}
         </Text>
       </View>
 
@@ -524,7 +524,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 onPress={() => handleAnswer(option)}
                 disabled={showResult}
               >
-                <Text style={[styles.optionLetter, { 
+                <Text style={[styles.optionLetter, {
                   color: textColor,
                   backgroundColor: textColor === colors.text ? colors.background : 'rgba(255,255,255,0.2)'
                 }]}>
@@ -538,15 +538,15 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         {/* Result Banner */}
         {showResult && (
-          <View style={[styles.resultBanner, { 
-            backgroundColor: isCorrect ? colors.success + '20' : colors.error + '20' 
+          <View style={[styles.resultBanner, {
+            backgroundColor: isCorrect ? colors.success + '20' : colors.error + '20'
           }]}>
             <Text style={[styles.resultText, { color: isCorrect ? colors.success : colors.error }]}>
-              {isCorrect ? '✅ Nibyo!' : '❌ Sibyo!'}
+              {isCorrect ? 'Nibyo!' : 'Sibyo!'}
             </Text>
             {!isCorrect && (
               <Text style={[styles.correctAnswer, { color: colors.textSecondary }]}>
-                ✓ Igisubizo: {currentQuestion.answer}
+                Igisubizo: {currentQuestion.answer}
               </Text>
             )}
           </View>
@@ -556,11 +556,11 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         {gameOver && (
           <View style={[styles.gameOverCard, { backgroundColor: colors.card }]}>
             <AppIcon name="trophy" size={80} color={colors.secondary} />
-            <Text style={[styles.gameOverTitle, { color: colors.text }]}>Warangije! 🎉</Text>
+            <Text style={[styles.gameOverTitle, { color: colors.text }]}>Warangije!</Text>
             <Text style={[styles.gameOverSubtitle, { color: colors.textSecondary }]}>
               Ibisakuzo 10 Byarangiye!
             </Text>
-            
+
             <View style={[styles.finalScores, { backgroundColor: colors.background }]}>
               <View style={styles.finalScoreItem}>
                 <Text style={[styles.finalScoreName, { color: colors.primary }]}>{player1Name}</Text>
@@ -569,33 +569,33 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               </View>
               <View style={[styles.finalScoreDivider, { backgroundColor: colors.border }]} />
               <View style={styles.finalScoreItem}>
-                <Text style={[styles.finalScoreName, { color: gameType === 'ai' ? colors.xpOrange : '#9C27B0' }]}>
+                <Text style={[styles.finalScoreName, { color: gameType === 'ai' ? colors.xpOrange : '#7C5CBF' }]}>
                   {player2Name}
                 </Text>
-                <Text style={[styles.finalScoreValue, { color: gameType === 'ai' ? colors.xpOrange : '#9C27B0' }]}>
+                <Text style={[styles.finalScoreValue, { color: gameType === 'ai' ? colors.xpOrange : '#7C5CBF' }]}>
                   {player2Score}
                 </Text>
                 <Text style={[styles.finalScoreLabel, { color: colors.textMuted }]}>ibisubizo</Text>
               </View>
             </View>
 
-            <View style={[styles.resultBanner, { 
-              backgroundColor: player1Score > player2Score ? colors.success + '20' : 
+            <View style={[styles.resultBanner, {
+              backgroundColor: player1Score > player2Score ? colors.success + '20' :
                               player2Score > player1Score ? colors.error + '20' : colors.warning + '20'
             }]}>
-              <Text style={[styles.resultText, { 
-                color: player1Score > player2Score ? colors.success : 
+              <Text style={[styles.resultText, {
+                color: player1Score > player2Score ? colors.success :
                        player2Score > player1Score ? colors.error : colors.warning
               }]}>
-                {player1Score > player2Score ? '🏆 Urabasha! +75 XP' : 
-                 player2Score > player1Score ? 
-                   (gameType === 'ai' ? '😔 Robot Arabasha!' : '😔 Urapfa!') : 
-                   '🤝 Igice! +50 XP'}
+                {player1Score > player2Score ? 'Urabasha! +75 XP' :
+                 player2Score > player1Score ?
+                   (gameType === 'ai' ? 'Robot Arabasha!' : 'Urapfa!') :
+                   'Igice! +50 XP'}
               </Text>
             </View>
 
             <View style={styles.gameOverButtons}>
-              <GlowButton 
+              <GlowButton
                 style={[styles.playAgainBtn, { backgroundColor: colors.primary }]}
                 glowColor={colors.primary}
                 onPress={gameType === 'ai' ? startAIGame : resetGame}
@@ -603,7 +603,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 <AppIcon name="refresh" size={18} color="#FFFFFF" />
                 <Text style={styles.playAgainText}>Fungura Ukina</Text>
               </GlowButton>
-              <AnimatedButton 
+              <AnimatedButton
                 style={[styles.menuBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
                 onPress={resetGame}
               >
@@ -622,7 +622,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         title="Ikosa"
         message={joinErrorMsg}
         type="error"
-        icon="🔗"
+        icon="link"
         showCancel={false}
         confirmText="Sawe"
         onConfirm={() => setShowJoinErrorModal(false)}
@@ -633,7 +633,7 @@ export const GameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         title="Kode Yacobose!"
         message={`Kode y'iciro: ${copiedCode}`}
         type="success"
-        icon="📋"
+        icon="copy"
         showCancel={false}
         confirmText="Sawe"
         onConfirm={() => setShowCodeCopiedModal(false)}

@@ -194,7 +194,7 @@ export const GlowButton: React.FC<GlowButtonProps> = ({
   children,
   onPress,
   style,
-  glowColor = '#20603D',
+  glowColor = '#0B6E84',
   disabled = false,
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -356,7 +356,7 @@ export const BounceButton: React.FC<BounceButtonProps> = ({
   onPress,
   style,
   disabled = false,
-  glowColor = '#20603D',
+  glowColor = '#0B6E84',
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
+import { Text } from './ui/AppText';
 import { Colors, Radius } from '../theme/colors';
 import { LEVEL_XP_THRESHOLDS, getLevelProgress } from '../store/useAppStore';
 

@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
-  Modal,
+  Image,
 } from 'react-native';
+import { Text } from '../components/ui/AppText';
+import { TextInput } from '../components/ui/AppTextInput';
 import { AppModal } from '../components/AppModal';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../components/ui/AppIcon';
-import { AvatarPicker, getAvatarEmoji } from '../components/AvatarPicker';
+import { AvatarPicker, AvatarBadge } from '../components/AvatarPicker';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { XPBar } from '../components/XPBar';
 import { RwandaSun } from '../components/RwandaSun';
@@ -21,23 +20,51 @@ import { units, getTotalLessons } from '../data/lessons';
 import { Footer } from '../components/Footer';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as ImagePicker from 'expo-image-picker';
 import * as Print from 'expo-print';
+import {
+  cancelNotifications,
+  enableNotifications,
+  getNotificationSettings,
+} from '../utils/notifications';
 
 // Dynamic launcher icon based on streak
 const getStreakIcon = (streak: number): string => {
-  if (streak >= 30) return '🦍'; // Champion gorilla
-  if (streak >= 14) return '🏔️'; // Mountains
-  if (streak >= 7) return '🏞️'; // Lake Kivu
-  if (streak >= 3) return '🌄'; // Rwanda Hills
-  return '🇷🇼'; // Flag
+  if (streak >= 30) return 'award';
+  if (streak >= 14) return 'mountainSnow';
+  if (streak >= 7) return 'waves';
+  if (streak >= 3) return 'mountain';
+  return 'flag';
 };
 
 export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { user, progress, certificate, logout, setUser } = useAppStore();
+  const { user, progress, certificate, logout, setUser, setPhotoUri } = useAppStore();
   const { colors, isDark } = useTheme();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationsBusy, setNotificationsBusy] = useState(false);
+  const [showNotificationsError, setShowNotificationsError] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user.displayName || '');
+
+  useEffect(() => {
+    getNotificationSettings().then((settings) => setNotificationsEnabled(settings.enabled));
+  }, []);
+
+  const handleToggleNotifications = async () => {
+    if (notificationsBusy) return;
+    setNotificationsBusy(true);
+    if (notificationsEnabled) {
+      await cancelNotifications();
+      setNotificationsEnabled(false);
+    } else {
+      const result = await enableNotifications(user.uid, 20);
+      setNotificationsEnabled(result.enabled);
+      if (!result.enabled) setShowNotificationsError(true);
+    }
+    setNotificationsBusy(false);
+  };
 
   const totalLessons = getTotalLessons();
   const completedLessons = progress.completedLessons.length;
@@ -55,44 +82,42 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
   const handleShareProgress = async () => {
     try {
-      const badgeEmoji = progress.xp >= 5000 ? '🥇' : progress.xp >= 2000 ? '🥈' : progress.xp >= 500 ? '🥉' : '🌱';
-      const streakFire = progress.streak >= 7 ? '🔥🔥' : progress.streak >= 3 ? '🔥' : '✨';
       const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
 <style>
-  body { margin: 0; padding: 0; background: #0d3320; font-family: Arial, sans-serif; width: 400px; height: 300px; overflow: hidden; }
-  .card { width: 400px; height: 300px; background: linear-gradient(135deg, #0d3320 0%, #20603D 50%, #1a5c3a 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-  .flag-stripe { position: absolute; top: 0; left: 0; right: 0; height: 8px; display: flex; }
-  .flag-blue { flex: 1; background: #00A1DE; }
-  .flag-yellow { flex: 0.5; background: #FAD201; }
-  .flag-green { flex: 1; background: #20603D; }
-  .app-name { font-size: 14px; color: rgba(255,255,255,0.6); letter-spacing: 3px; margin-bottom: 6px; }
-  .gorilla { font-size: 48px; margin-bottom: 8px; }
-  .name { font-size: 22px; font-weight: 900; color: #FFD700; margin-bottom: 4px; }
-  .stats { display: flex; gap: 20px; margin: 12px 0; }
+  body { margin: 0; padding: 0; background: #F4F7F9; font-family: Arial, sans-serif; width: 400px; height: 300px; overflow: hidden; }
+  .card { width: 400px; height: 300px; background: #0B6E84; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  .flag-stripe { position: absolute; top: 0; left: 0; right: 0; height: 6px; display: flex; }
+  .flag-blue { flex: 1; background: #2B6CB0; }
+  .flag-yellow { flex: 0.5; background: #D9A441; }
+  .flag-green { flex: 1; background: #2F9E6E; }
+  .app-name { font-size: 12px; color: rgba(255,255,255,0.65); letter-spacing: 3px; margin-bottom: 10px; }
+  .mark { width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,0.15); color: #FFFFFF; font-size: 24px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+  .name { font-size: 22px; font-weight: 800; color: #FFFFFF; margin-bottom: 4px; }
+  .stats { display: flex; gap: 22px; margin: 14px 0; }
   .stat { text-align: center; }
-  .stat-val { font-size: 22px; font-weight: 900; color: #FFFFFF; }
-  .stat-label { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 2px; }
-  .badge { background: rgba(255,215,0,0.2); border: 1px solid #FFD700; border-radius: 20px; padding: 6px 16px; font-size: 13px; color: #FFD700; font-weight: 700; }
-  .footer { position: absolute; bottom: 10px; font-size: 10px; color: rgba(255,255,255,0.4); }
-  .flag-bottom { position: absolute; bottom: 0; left: 0; right: 0; height: 8px; display: flex; }
+  .stat-val { font-size: 22px; font-weight: 800; color: #FFFFFF; }
+  .stat-label { font-size: 9px; letter-spacing: 0.6px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+  .badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 6px 16px; font-size: 12px; color: #FFFFFF; font-weight: 700; }
+  .footer { position: absolute; bottom: 10px; font-size: 10px; color: rgba(255,255,255,0.45); }
+  .flag-bottom { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; display: flex; }
 </style>
 </head>
 <body>
 <div class="card">
   <div class="flag-stripe"><div class="flag-blue"></div><div class="flag-yellow"></div><div class="flag-green"></div></div>
   <div class="app-name">MENYA IKINYARWANDA</div>
-  <div class="gorilla">🦍</div>
+  <div class="mark">M</div>
   <div class="name">${user.displayName || 'Umunyeshuri'}</div>
   <div class="stats">
-    <div class="stat"><div class="stat-val">${badgeEmoji} ${progress.xp}</div><div class="stat-label">XP Earned</div></div>
-    <div class="stat"><div class="stat-val">${streakFire} ${progress.streak}</div><div class="stat-label">Day Streak</div></div>
-    <div class="stat"><div class="stat-val">⭐ ${progress.level}</div><div class="stat-label">Level</div></div>
+    <div class="stat"><div class="stat-val">${progress.xp}</div><div class="stat-label">XP EARNED</div></div>
+    <div class="stat"><div class="stat-val">${progress.streak}</div><div class="stat-label">DAY STREAK</div></div>
+    <div class="stat"><div class="stat-val">${progress.level}</div><div class="stat-label">LEVEL</div></div>
   </div>
-  <div class="badge">🇷🇼 ${progress.completedLessons.length} Lessons Completed</div>
-  <div class="footer">menya.app • Learn Kinyarwanda</div>
+  <div class="badge">${progress.completedLessons.length} Lessons Completed</div>
+  <div class="footer">menya.app · Learn Kinyarwanda</div>
   <div class="flag-bottom"><div class="flag-green"></div><div class="flag-yellow"></div><div class="flag-blue"></div></div>
 </div>
 </body>
@@ -108,6 +133,47 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     }
   };
 
+  const persistPhoto = async (uri: string) => {
+    try {
+      const extension = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const destination = `${FileSystem.documentDirectory}profile_${user.uid || 'user'}.${extension}`;
+      await FileSystem.copyAsync({ from: uri, to: destination });
+      setPhotoUri(destination);
+    } catch {
+      setPhotoUri(uri);
+    }
+  };
+
+  const handlePickPhoto = async (source: 'camera' | 'library') => {
+    setShowPhotoModal(false);
+    try {
+      if (source === 'camera') {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (permission.status !== 'granted') return;
+        const result = await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.75,
+        });
+        if (!result.canceled && result.assets[0]) {
+          await persistPhoto(result.assets[0].uri);
+        }
+      } else {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.75,
+        });
+        if (!result.canceled && result.assets[0]) {
+          await persistPhoto(result.assets[0].uri);
+        }
+      }
+    } catch {
+      // The user can retry from Profile at any time.
+    }
+  };
+
   const handleSaveName = () => {
     if (nameInput.trim().length < 2) {
       setShowNameErrorModal(true);
@@ -120,16 +186,20 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.header}>
-        <RwandaSun size={50} animated opacity={0.2} />
+      <View style={[styles.header, { backgroundColor: colors.primary }]}>
+        <RwandaSun size={50} animated opacity={0.12} />
         
         {/* Avatar with edit button */}
         <TouchableOpacity 
           style={styles.avatarWrapper}
           onPress={() => setShowAvatarPicker(true)}
         >
-          <Text style={styles.avatarEmoji}>{getAvatarEmoji(user.avatar)}</Text>
-          <View style={[styles.avatarEditBadge, { backgroundColor: colors.primary }]}>
+          {user.photoUri ? (
+            <Image source={{ uri: user.photoUri }} style={styles.profilePhoto} />
+          ) : (
+            <AvatarBadge id={user.avatar} size={80} />
+          )}
+          <View style={[styles.avatarEditBadge, { backgroundColor: colors.primaryDark }]}>
             <AppIcon name="edit" size={12} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
@@ -169,14 +239,15 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
         <Text style={styles.userEmail}>{user.email || ''}</Text>
         
-        <View style={[styles.levelBadge, { backgroundColor: colors.secondary }]}>
-          <Text style={[styles.levelText, { color: colors.text }]}>🏆 Level {progress.level}</Text>
+        <View style={[styles.levelBadge, { backgroundColor: colors.secondary + '22', borderColor: colors.secondary + '55' }]}>
+          <AppIcon name="trophy" size={14} color={colors.secondary} />
+          <Text style={[styles.levelText, { color: colors.secondary }]}>Level {progress.level}</Text>
         </View>
 
         {/* Streak Champion Badge */}
         {progress.streak >= 3 && (
           <View style={styles.championBadge}>
-            <Text style={styles.championIcon}>{streakIcon}</Text>
+            <AppIcon name={streakIcon} size={15} color="#FFFFFF" />
             <Text style={styles.championText}>
               {progress.streak >= 30 ? 'Champion!' : 
                progress.streak >= 14 ? 'Mountain Master' :
@@ -184,7 +255,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             </Text>
           </View>
         )}
-      </LinearGradient>
+      </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* XP Bar */}
@@ -195,13 +266,63 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
         {/* Share Progress Card */}
         <TouchableOpacity
-          style={[styles.shareBtn, { backgroundColor: '#25D366' }]}
+          style={[styles.shareBtn, { backgroundColor: colors.primary }]}
           onPress={handleShareProgress}
           activeOpacity={0.85}
         >
-          <Text style={{ fontSize: 18 }}>📤</Text>
+          <AppIcon name="share" size={18} color="#FFFFFF" />
           <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 14 }}>Share Progress Card</Text>
         </TouchableOpacity>
+
+        {/* Profile photo */}
+        <AnimatedButton
+          style={[styles.themeBtn, { backgroundColor: colors.card }]}
+          onPress={() => setShowPhotoModal(true)}
+        >
+          <AppIcon name="camera" size={22} color={colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.themeBtnTitle, { color: colors.text }]}>Profile photo</Text>
+            <Text style={[styles.themeBtnSubtitle, { color: colors.textSecondary }]}>
+              {user.photoUri ? 'Update your certificate photo' : 'Add a photo for your certificate'}
+            </Text>
+          </View>
+          <AppIcon name="arrowRight" size={20} color={colors.textMuted} />
+        </AnimatedButton>
+
+        {/* Notifications */}
+        <AnimatedButton
+          style={[styles.themeBtn, { backgroundColor: colors.card }]}
+          onPress={handleToggleNotifications}
+        >
+          <AppIcon name="bell" size={22} color={colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.themeBtnTitle, { color: colors.text }]}>Notifications</Text>
+            <Text style={[styles.themeBtnSubtitle, { color: colors.textSecondary }]}>
+              {notificationsEnabled
+                ? 'Daily practice reminder at 8:00 PM'
+                : 'Get practice reminders and Menya updates'}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.notificationState,
+              {
+                backgroundColor: notificationsEnabled
+                  ? colors.success + '18'
+                  : colors.background,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.notificationStateText,
+                { color: notificationsEnabled ? colors.success : colors.textMuted },
+              ]}
+            >
+              {notificationsBusy ? '…' : notificationsEnabled ? 'On' : 'Off'}
+            </Text>
+          </View>
+        </AnimatedButton>
 
         {/* Theme Settings Button */}
         <AnimatedButton 
@@ -210,9 +331,9 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         >
           <AppIcon name="palette" size={22} color={colors.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.themeBtnTitle, { color: colors.text }]}>🎨 Theme / Ibara</Text>
+            <Text style={[styles.themeBtnTitle, { color: colors.text }]}>Theme</Text>
             <Text style={[styles.themeBtnSubtitle, { color: colors.textSecondary }]}>
-              {isDark ? '🌙 Dark Mode' : '☀️ Light Mode'}
+              {isDark ? 'Dark mode' : 'Light mode'}
             </Text>
           </View>
           <AppIcon name="arrowRight" size={20} color={colors.textMuted} />
@@ -223,9 +344,9 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           style={[styles.themeBtn, { backgroundColor: colors.card }]}
           onPress={() => navigation.navigate('QRScanner')}
         >
-          <AppIcon name="scan" size={22} color="#00A1DE" />
+          <AppIcon name="scan" size={22} color="#2B6CB0" />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.themeBtnTitle, { color: colors.text }]}>🔍 Scan Certificate QR</Text>
+            <Text style={[styles.themeBtnTitle, { color: colors.text }]}>Scan Certificate QR</Text>
             <Text style={[styles.themeBtnSubtitle, { color: colors.textSecondary }]}>
               Verify a Menya certificate
             </Text>
@@ -236,32 +357,41 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         {/* My Certificate Button — only if ALL lessons completed */}
         {allLessonsDone && (
           <AnimatedButton
-            style={[styles.themeBtn, { backgroundColor: '#FFD70022', borderWidth: 1.5, borderColor: '#FFD700' }]}
+            style={[styles.themeBtn, { backgroundColor: colors.secondary + '18', borderWidth: 1, borderColor: colors.secondary + '55' }]}
             onPress={() => navigation.navigate('Certificate')}
           >
-            <Text style={{ fontSize: 22 }}>🏆</Text>
+            <AppIcon name="award" size={22} color={colors.secondary} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.themeBtnTitle, { color: '#FFD700' }]}>My Certificate</Text>
+              <Text style={[styles.themeBtnTitle, { color: colors.text }]}>My Certificate</Text>
               <Text style={[styles.themeBtnSubtitle, { color: colors.textSecondary }]}>
                 Download or share your PDF
               </Text>
             </View>
-            <AppIcon name="arrowRight" size={20} color="#FFD700" />
+            <AppIcon name="arrowRight" size={20} color={colors.textMuted} />
           </AnimatedButton>
         )}
 
         {/* Stats row */}
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: colors.primaryLight + '20' }]}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>🔥 {progress.streak}</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.primaryLight + '60' }]}>
+            <View style={styles.statValueRow}>
+              <AppIcon name="flame" size={16} color={colors.primary} />
+              <Text style={[styles.statValue, { color: colors.primary }]}>{progress.streak}</Text>
+            </View>
             <Text style={[styles.statLabel, { color: colors.textMuted }]}>Day Streak</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.xpOrange + '20' }]}>
-            <Text style={[styles.statValue, { color: colors.xpOrange }]}>⭐ {progress.xp}</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.xpOrange + '18' }]}>
+            <View style={styles.statValueRow}>
+              <AppIcon name="star" size={16} color={colors.xpOrange} />
+              <Text style={[styles.statValue, { color: colors.xpOrange }]}>{progress.xp}</Text>
+            </View>
             <Text style={[styles.statLabel, { color: colors.textMuted }]}>Total XP</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.heartRed + '20' }]}>
-            <Text style={[styles.statValue, { color: colors.heartRed }]}>❤️ {progress.hearts}</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.heartRed + '14' }]}>
+            <View style={styles.statValueRow}>
+              <AppIcon name="heart" size={16} color={colors.heartRed} />
+              <Text style={[styles.statValue, { color: colors.heartRed }]}>{progress.hearts}</Text>
+            </View>
             <Text style={[styles.statLabel, { color: colors.textMuted }]}>Hearts</Text>
           </View>
         </View>
@@ -271,42 +401,42 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Ibihembo / Achievements</Text>
           <View style={styles.achievementGrid}>
             <AchievementBadge
-              icon="🦍"
+              icon="smile"
               title="Gori Fan"
               desc="Started learning"
               unlocked={true}
               colors={colors}
             />
             <AchievementBadge
-              icon="🔥"
+              icon="flame"
               title="On Fire"
               desc="3-day streak"
               unlocked={progress.streak >= 3}
               colors={colors}
             />
             <AchievementBadge
-              icon="📚"
+              icon="bookOpen"
               title="Scholar"
               desc="Complete 3 lessons"
               unlocked={completedLessons >= 3}
               colors={colors}
             />
             <AchievementBadge
-              icon="⭐"
+              icon="star"
               title="XP Hunter"
               desc="Earn 50 XP"
               unlocked={progress.xp >= 50}
               colors={colors}
             />
             <AchievementBadge
-              icon="🇷🇼"
+              icon="flag"
               title="Umunyarwanda"
               desc="Complete all units"
               unlocked={completedLessons >= totalLessons}
               colors={colors}
             />
             <AchievementBadge
-              icon="🏔️"
+              icon="mountainSnow"
               title="Champion"
               desc="30-day streak"
               unlocked={progress.streak >= 30}
@@ -351,7 +481,8 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           style={[styles.logoutBtn, { backgroundColor: colors.card, borderColor: colors.error }]} 
           onPress={handleLogout}
         >
-          <Text style={[styles.logoutText, { color: colors.error }]}>🚪 Siga Konti / Logout</Text>
+          <AppIcon name="logout" size={18} color={colors.error} />
+          <Text style={[styles.logoutText, { color: colors.error }]}>Log out</Text>
         </AnimatedButton>
 
         <Footer />
@@ -361,16 +492,41 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       {/* Avatar Picker Modal */}
       <AvatarPicker visible={showAvatarPicker} onClose={() => setShowAvatarPicker(false)} />
 
+      {/* Profile photo source */}
+      <AppModal
+        visible={showPhotoModal}
+        title="Profile photo"
+        message="Choose a source for the photo on your certificate."
+        type="info"
+        icon="camera"
+        cancelText="Gallery"
+        confirmText="Camera"
+        onCancel={() => handlePickPhoto('library')}
+        onConfirm={() => handlePickPhoto('camera')}
+      />
+
+      {/* Notification permission */}
+      <AppModal
+        visible={showNotificationsError}
+        title="Notifications are off"
+        message="Allow notifications in your device settings, then try again from Profile."
+        type="warning"
+        icon="bell"
+        confirmText="OK"
+        showCancel={false}
+        onConfirm={() => setShowNotificationsError(false)}
+      />
+
       {/* Logout Confirmation */}
       <AppModal
         visible={showLogoutModal}
         title="Siga Konti"
         message="Urashaka gusiga konti yawe?"
         type="warning"
-        icon="🚪"
+        icon="logout"
         cancelText="Oya"
         confirmText="Yego"
-        confirmColor="#E74C3C"
+        confirmColor={colors.error}
         onCancel={() => setShowLogoutModal(false)}
         onConfirm={() => {
           setShowLogoutModal(false);
@@ -400,10 +556,16 @@ const AchievementBadge: React.FC<{
   colors: any;
 }> = ({ icon, title, desc, unlocked, colors }) => (
   <View style={[styles.badge, { backgroundColor: colors.background, borderColor: colors.border }, !unlocked && styles.badgeLocked]}>
-    <Text style={[styles.badgeIcon, !unlocked && { opacity: 0.3 }]}>{icon}</Text>
+    <View style={[styles.badgeIconWrap, { backgroundColor: unlocked ? colors.primaryLight : colors.border }]}>
+      <AppIcon name={icon} size={22} color={unlocked ? colors.primary : colors.textMuted} />
+    </View>
     <Text style={[styles.badgeTitle, { color: unlocked ? colors.text : colors.textMuted }]}>{title}</Text>
     <Text style={[styles.badgeDesc, { color: colors.textMuted }]}>{desc}</Text>
-    {!unlocked && <View style={[styles.badgeLock, { backgroundColor: colors.background }]}><Text>🔒</Text></View>}
+    {!unlocked && (
+      <View style={[styles.badgeLock, { backgroundColor: colors.background }]}>
+        <AppIcon name="lock" size={12} color={colors.textMuted} />
+      </View>
+    )}
   </View>
 );
 
@@ -421,8 +583,12 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 12,
   },
-  avatarEmoji: {
-    fontSize: 80,
+  profilePhoto: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.65)',
   },
   avatarEditBadge: {
     position: 'absolute',
@@ -476,23 +642,26 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   levelBadge: {
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
     marginTop: 8,
+    borderWidth: 1,
   },
-  levelText: { fontSize: 14, fontWeight: '800' },
+  levelText: { fontSize: 13, fontWeight: '800' },
   championBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.16)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     marginTop: 10,
     gap: 6,
   },
-  championIcon: { fontSize: 16 },
   championText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
   scroll: { flex: 1 },
   card: {
@@ -523,6 +692,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
+  notificationState: {
+    minWidth: 36,
+    alignItems: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  notificationStateText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   themeBtnArrow: {
     fontSize: 20,
     fontWeight: '600',
@@ -539,7 +719,12 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
   },
-  statValue: { fontSize: 18, fontWeight: '900' },
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  statValue: { fontSize: 18, fontWeight: '800' },
   statLabel: { fontSize: 11, marginTop: 4 },
   achievementGrid: {
     flexDirection: 'row',
@@ -555,10 +740,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   badgeLocked: { opacity: 0.6 },
-  badgeIcon: { fontSize: 28, marginBottom: 4 },
+  badgeIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
   badgeTitle: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
   badgeDesc: { fontSize: 10, textAlign: 'center', marginTop: 2 },
-  badgeLock: { position: 'absolute', top: 4, right: 4 },
+  badgeLock: { position: 'absolute', top: 4, right: 4, padding: 2, borderRadius: 6 },
   progressRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -594,11 +786,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoutBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
     margin: 16,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   logoutText: { fontSize: 15, fontWeight: '700' },
   shareBtn: {

@@ -1,17 +1,17 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   Modal,
   StyleSheet,
   Animated,
-  Dimensions,
   StatusBar,
 } from 'react-native';
+import { Text } from './ui/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../theme/colors';
+import { AppIcon } from './ui/AppIcon';
+import { useTheme } from '../theme/themeContext';
 
 interface AppModalProps {
   visible: boolean;
@@ -29,21 +29,21 @@ interface AppModalProps {
   icon?: string;
 }
 
-const TYPE_COLORS: Record<string, { bg: string; border: string; icon: string }> = {
-  info: { bg: '#EBF5FB', border: '#3498DB', icon: '💡' },
-  success: { bg: '#E8F8F0', border: '#27AE60', icon: '✅' },
-  warning: { bg: '#FEF5E7', border: '#F39C12', icon: '⚠️' },
-  error: { bg: '#FDEDEC', border: '#E74C3C', icon: '❌' },
+const TYPE_ICONS: Record<string, string> = {
+  info: 'info',
+  success: 'checkCircle',
+  warning: 'warning',
+  error: 'closeCircle',
 };
 
 export const AppModal: React.FC<AppModalProps> = ({
   visible,
   title,
   message,
-  cancelText = 'Oya',
-  confirmText = 'Yego',
-  cancelColor = Colors.textMid,
-  confirmColor = Colors.green,
+  cancelText = 'Cancel',
+  confirmText = 'OK',
+  cancelColor,
+  confirmColor,
   showCancel = true,
   showConfirm = true,
   onCancel,
@@ -55,6 +55,7 @@ export const AppModal: React.FC<AppModalProps> = ({
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const bgOpacity = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (visible) {
@@ -112,51 +113,55 @@ export const AppModal: React.FC<AppModalProps> = ({
 
   if (!visible) return null;
 
-  const colors = TYPE_COLORS[type] || TYPE_COLORS.info;
-  const displayIcon = icon || colors.icon;
+  const accent = {
+    info: colors.info,
+    success: colors.success,
+    warning: colors.warning,
+    error: colors.error,
+  }[type] || colors.info;
+  const displayIcon = icon || TYPE_ICONS[type] || 'info';
 
   return (
     <Modal transparent visible={visible} animationType="none" statusBarTranslucent>
-      <Animated.View style={[styles.overlay, { opacity: bgOpacity, backgroundColor: 'rgba(0,0,0,0.55)' }]}>
+      <StatusBar barStyle="light-content" />
+      <Animated.View style={[styles.overlay, { opacity: bgOpacity, backgroundColor: colors.overlay }]}>
         <Animated.View
           style={[
             styles.modalContainer,
             {
+              backgroundColor: colors.surface,
               transform: [{ scale: scaleAnim }],
               opacity: opacityAnim,
               paddingBottom: Math.max(insets.bottom, 24),
             },
           ]}
         >
-          {/* Icon */}
-          <View style={[styles.iconContainer, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-            <Text style={styles.iconText}>{displayIcon}</Text>
+          <View style={[styles.iconContainer, { backgroundColor: accent + '16', borderColor: accent + '55' }]}>
+            <AppIcon name={displayIcon} size={26} color={accent} />
           </View>
 
-          {/* Title */}
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
 
-          {/* Message */}
-          <Text style={styles.message}>{message}</Text>
-
-          {/* Buttons */}
           <View style={styles.buttonRow}>
             {showCancel && (
               <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
+                style={[styles.button, { backgroundColor: colors.card }]}
                 onPress={handleCancel}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.buttonText, { color: cancelColor }]}>{cancelText}</Text>
+                <Text style={[styles.buttonText, { color: cancelColor || colors.textSecondary }]}>
+                  {cancelText}
+                </Text>
               </TouchableOpacity>
             )}
             {showConfirm && (
               <TouchableOpacity
-                style={[styles.button, styles.confirmButton, { backgroundColor: confirmColor }]}
+                style={[styles.button, { backgroundColor: confirmColor || colors.primary }]}
                 onPress={handleConfirm}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.buttonText, { color: '#fff' }]}>{confirmText}</Text>
+                <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>{confirmText}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -174,50 +179,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    paddingTop: 32,
+    borderRadius: 22,
+    paddingTop: 28,
     paddingBottom: 24,
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
     width: '100%',
     maxWidth: 360,
-    shadowColor: '#000',
+    shadowColor: '#14212B',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.18,
     shadowRadius: 24,
     elevation: 16,
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-  },
-  iconText: {
-    fontSize: 28,
+    marginBottom: 14,
+    borderWidth: 1.5,
   },
   title: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '800',
-    color: '#1A1A1A',
     textAlign: 'center',
     marginBottom: 8,
   },
   message: {
-    fontSize: 15,
-    color: '#555',
+    fontSize: 14.5,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
+    lineHeight: 21,
+    marginBottom: 22,
     paddingHorizontal: 4,
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   button: {
     flex: 1,
@@ -226,18 +225,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButton: {
-    backgroundColor: '#F5F5F5',
-  },
-  confirmButton: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
   buttonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
 });

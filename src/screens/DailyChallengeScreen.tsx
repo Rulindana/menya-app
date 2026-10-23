@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
 import { useTheme } from '../theme/themeContext';
 import { useAppStore } from '../store/useAppStore';
@@ -9,7 +9,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const DAILY_KEY = 'menya_daily_challenge';
 const DAILY_XP = 30;
 
-// 5 questions per day, cycling through a pool based on day-of-year
 const QUESTION_POOL = [
   { q: 'What does "Muraho" mean?', opts: ['Goodbye', 'Hello', 'Thank you', 'Sorry'], a: 'Hello' },
   { q: 'What is "Murakoze"?', opts: ['Please', 'Sorry', 'Thank you', 'Hello'], a: 'Thank you' },
@@ -68,9 +67,9 @@ export const DailyChallengeScreen: React.FC<{ navigation: any }> = ({ navigation
   const [prevScore, setPrevScore] = useState(0);
 
   useEffect(() => {
-    AsyncStorage.getItem(DAILY_KEY).then(val => {
-      if (val) {
-        const data = JSON.parse(val);
+    AsyncStorage.getItem(DAILY_KEY).then((value) => {
+      if (value) {
+        const data = JSON.parse(value);
         if (data.date === getTodayKey()) {
           setAlreadyDone(true);
           setPrevScore(data.score);
@@ -84,10 +83,10 @@ export const DailyChallengeScreen: React.FC<{ navigation: any }> = ({ navigation
     });
   }, []);
 
-  const handleAnswer = (opt: string) => {
-    const q = questions[idx];
-    const correct = opt === q.a;
-    const newAnswers = { ...answers, [idx]: opt };
+  const handleAnswer = (option: string) => {
+    const question = questions[idx];
+    const correct = option === question.a;
+    const newAnswers = { ...answers, [idx]: option };
     setAnswers(newAnswers);
     const newScore = score + (correct ? 1 : 0);
     setScore(newScore);
@@ -100,7 +99,7 @@ export const DailyChallengeScreen: React.FC<{ navigation: any }> = ({ navigation
         setPrevScore(newScore);
         setPhase('done');
       } else {
-        setIdx(i => i + 1);
+        setIdx((current) => current + 1);
       }
     }, 600);
   };
@@ -110,123 +109,199 @@ export const DailyChallengeScreen: React.FC<{ navigation: any }> = ({ navigation
     const midnight = new Date(now);
     midnight.setHours(24, 0, 0, 0);
     const diff = midnight.getTime() - now.getTime();
-    const h = Math.floor(diff / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    return `${h}h ${m}m`;
+    return `${Math.floor(diff / 3600000)}h ${Math.floor((diff % 3600000) / 60000)}m`;
   };
 
-  // Loading
   if (phase === 'locked') {
     return (
-      <LinearGradient colors={['#0a1628', '#1a2a4a', '#0d3320']} style={styles.center}>
-        <Text style={{ fontSize: 40 }}>⏳</Text>
-        <Text style={styles.title}>Loading...</Text>
-      </LinearGradient>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <AppIcon name="clock" size={34} color={colors.primary} />
+        <Text style={[styles.title, { color: colors.text }]}>Loading challenge…</Text>
+      </View>
     );
   }
 
-  // Already done today
   if (phase === 'done') {
-    const pct = Math.round((prevScore / questions.length) * 100);
-    const earned = alreadyDone ? Math.floor((prevScore / questions.length) * DAILY_XP) : Math.floor((score / questions.length) * DAILY_XP);
+    const percentage = Math.round((prevScore / questions.length) * 100);
+    const earned = alreadyDone
+      ? Math.floor((prevScore / questions.length) * DAILY_XP)
+      : Math.floor((score / questions.length) * DAILY_XP);
+    const resultIcon = percentage === 100 ? 'trophy' : percentage >= 80 ? 'star' : 'target';
+
     return (
-      <LinearGradient colors={['#0a1628', '#1a2a4a', '#0d3320']} style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={20} color="#fff" />
+          <AppIcon name="arrowLeft" size={20} color={colors.text} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 60 }}>{pct === 100 ? '🏆' : pct >= 80 ? '⭐' : '🎯'}</Text>
-        <Text style={styles.title}>{alreadyDone ? "Today's Challenge Done!" : 'Challenge Complete!'}</Text>
-        <Text style={styles.subtitle}>{prevScore}/{questions.length} correct · {pct}%</Text>
-        {!alreadyDone && <Text style={styles.xpText}>+{earned} XP earned! 🎉</Text>}
-        <View style={styles.resetBox}>
-          <AppIcon name="clock" size={16} color="rgba(255,255,255,0.5)" />
-          <Text style={styles.resetText}>Next challenge in {msUntilMidnight()}</Text>
+
+        <View style={[styles.resultIcon, { backgroundColor: colors.primaryLight }]}>
+          <AppIcon name={resultIcon} size={34} color={colors.primary} />
         </View>
-        <TouchableOpacity style={styles.homeBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.homeBtnText}>← Back to Home</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {alreadyDone ? "Today's challenge is done" : 'Challenge complete'}
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {prevScore}/{questions.length} correct · {percentage}%
+        </Text>
+        {!alreadyDone && (
+          <Text style={[styles.xpText, { color: colors.success }]}>+{earned} XP earned</Text>
+        )}
+
+        <View style={[styles.resetBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <AppIcon name="clock" size={15} color={colors.textMuted} />
+          <Text style={[styles.resetText, { color: colors.textSecondary }]}>
+            Next challenge in {msUntilMidnight()}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.homeBtn, { backgroundColor: colors.primary }]}
+          onPress={() => navigation.goBack()}
+        >
+          <AppIcon name="home" size={17} color="#FFFFFF" />
+          <Text style={styles.homeBtnText}>Back to Home</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     );
   }
 
-  // Playing
-  const q = questions[idx];
+  const question = questions[idx];
   const answered = answers[idx];
 
   return (
-    <LinearGradient colors={['#0a1628', '#1a2a4a', '#0d3320']} style={{ flex: 1 }}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
-          <AppIcon name="arrowLeft" size={20} color="#fff" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBack}>
+          <AppIcon name="arrowLeft" size={20} color={colors.text} />
         </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={styles.headerTitle}>⚡ Daily Challenge</Text>
-          <Text style={styles.headerSub}>Question {idx + 1} of {questions.length}</Text>
+        <View style={styles.headerCopy}>
+          <View style={styles.headerTitleRow}>
+            <AppIcon name="flash" size={15} color={colors.secondary} />
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Daily Challenge</Text>
+          </View>
+          <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
+            Question {idx + 1} of {questions.length}
+          </Text>
         </View>
-        <View style={styles.xpBadge}>
-          <Text style={styles.xpBadgeText}>+{DAILY_XP} XP</Text>
+        <View style={[styles.xpBadge, { backgroundColor: colors.secondary + '1F' }]}>
+          <Text style={[styles.xpBadgeText, { color: colors.secondary }]}>+{DAILY_XP} XP</Text>
         </View>
       </View>
 
-      {/* Progress bar */}
-      <View style={styles.progressBg}>
-        <View style={[styles.progressFill, { width: `${((idx) / questions.length) * 100}%` as any }]} />
+      <View style={[styles.progressBg, { backgroundColor: colors.border }]}>
+        <View
+          style={[
+            styles.progressFill,
+            { width: `${(idx / questions.length) * 100}%`, backgroundColor: colors.primary },
+          ]}
+        />
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.question}>{q.q}</Text>
-        <View style={{ gap: 12, width: '100%' }}>
-          {q.opts.map(opt => {
-            const isSelected = answered === opt;
-            const isRight = opt === q.a;
-            let bg = 'rgba(255,255,255,0.08)';
-            let border = 'rgba(255,255,255,0.18)';
+        <Text style={[styles.question, { color: colors.text }]}>{question.q}</Text>
+        <View style={styles.options}>
+          {question.opts.map((option) => {
+            const selected = answered === option;
+            const right = option === question.a;
+            let backgroundColor = colors.card;
+            let borderColor = colors.border;
+            let textColor = colors.text;
+
             if (answered) {
-              if (isRight) { bg = '#20603D44'; border = '#20603D'; }
-              else if (isSelected) { bg = '#E74C3C22'; border = '#E74C3C'; }
+              if (right) {
+                backgroundColor = colors.success + '18';
+                borderColor = colors.success;
+                textColor = colors.success;
+              } else if (selected) {
+                backgroundColor = colors.error + '18';
+                borderColor = colors.error;
+                textColor = colors.error;
+              }
             }
+
             return (
               <TouchableOpacity
-                key={opt}
-                style={[styles.optBtn, { backgroundColor: bg, borderColor: border }]}
-                onPress={() => !answered && handleAnswer(opt)}
+                key={option}
+                style={[styles.optionBtn, { backgroundColor, borderColor }]}
+                onPress={() => !answered && handleAnswer(option)}
                 disabled={!!answered}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.optText, answered && isRight && { color: '#4CAF50', fontWeight: '900' }, answered && isSelected && !isRight && { color: '#E74C3C' }]}>
-                  {opt}
-                </Text>
-                {answered && isRight && <Text style={{ fontSize: 18 }}>✅</Text>}
-                {answered && isSelected && !isRight && <Text style={{ fontSize: 18 }}>❌</Text>}
+                <Text style={[styles.optionText, { color: textColor }]}>{option}</Text>
+                {answered && right && <AppIcon name="checkCircle" size={18} color={colors.success} />}
+                {answered && selected && !right && <AppIcon name="closeCircle" size={18} color={colors.error} />}
               </TouchableOpacity>
             );
           })}
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 54, paddingHorizontal: 16, paddingBottom: 12 },
-  headerTitle: { fontSize: 16, fontWeight: '900', color: '#FFD700' },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  xpBadge: { backgroundColor: '#FFD70033', borderWidth: 1, borderColor: '#FFD700', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  xpBadgeText: { color: '#FFD700', fontWeight: '800', fontSize: 12 },
-  progressBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: 16, borderRadius: 3 },
-  progressFill: { height: 6, backgroundColor: '#FFD700', borderRadius: 3 },
-  body: { padding: 24, alignItems: 'center', paddingTop: 32 },
-  question: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', marginBottom: 28, lineHeight: 28, width: '100%' },
-  optBtn: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderRadius: 12, padding: 16 },
-  optText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF', flex: 1 },
-  title: { fontSize: 26, fontWeight: '900', color: '#FFD700', marginTop: 16, textAlign: 'center' },
-  subtitle: { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginTop: 8 },
-  xpText: { fontSize: 22, fontWeight: '900', color: '#4CAF50', marginTop: 8 },
-  resetBox: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
-  resetText: { color: 'rgba(255,255,255,0.5)', fontSize: 13 },
-  homeBtn: { marginTop: 24, backgroundColor: '#20603D', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32 },
-  homeBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
   backBtn: { position: 'absolute', top: 54, left: 16, padding: 8, zIndex: 10 },
+  resultIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 54,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  headerBack: { padding: 8 },
+  headerCopy: { flex: 1, alignItems: 'center' },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  headerTitle: { fontSize: 16, fontWeight: '800' },
+  headerSub: { fontSize: 12, marginTop: 2 },
+  xpBadge: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 },
+  xpBadgeText: { fontWeight: '800', fontSize: 12 },
+  progressBg: { height: 6, marginHorizontal: 16, borderRadius: 3, marginTop: 12 },
+  progressFill: { height: 6, borderRadius: 3 },
+  body: { padding: 24, alignItems: 'center', paddingTop: 30 },
+  question: { fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 26, lineHeight: 28, width: '100%' },
+  options: { gap: 12, width: '100%' },
+  optionBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 16,
+  },
+  optionText: { fontSize: 15, fontWeight: '600', flex: 1 },
+  title: { fontSize: 24, fontWeight: '800', marginTop: 16, textAlign: 'center' },
+  subtitle: { fontSize: 15, marginTop: 8 },
+  xpText: { fontSize: 18, fontWeight: '800', marginTop: 8 },
+  resetBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  resetText: { fontSize: 13 },
+  homeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 24,
+    borderRadius: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+  },
+  homeBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
 });

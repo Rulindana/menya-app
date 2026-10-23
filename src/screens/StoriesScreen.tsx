@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
 import { useTheme } from '../theme/themeContext';
 import { useAppStore } from '../store/useAppStore';
@@ -20,7 +20,7 @@ interface Story {
   titleKiny: string;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   levelColor: string;
-  emoji: string;
+  icon: string;
   text: string;
   translation: string;
   vocabulary: { kiny: string; eng: string }[];
@@ -34,8 +34,8 @@ const stories: Story[] = [
     title: 'A Morning in Kigali',
     titleKiny: 'Mu Gitondo i Kigali',
     level: 'Beginner',
-    levelColor: '#20603D',
-    emoji: '🌅',
+    levelColor: '#2F9E6E',
+    icon: 'sun',
     text: `Uwimana azuka vuba mu gitondo. Asiga akanya asukura amenyo, hanyuma agenda gukaraba. Nyuma yo kurya ifunguro rya mu gitondo — umugati n'amata — agenda ku kazi.\n\nI Kigali imihanda igwana abantu bose baziye gukora. Uwimana areba izuba rirashe hejuru y'imisozi. "Mwaramutse, Kigali!" avuga mu mutima we.\n\nUwimana afite akazi ko kwigisha mu ishuri rya Remera. Abana bamushimira kuko abigisha neza. Ijoro riri iminsi yose, Uwimana asubira iwe nishimye.`,
     translation: `Uwimana wakes up early in the morning. He takes a moment to brush his teeth, then goes to wash. After eating breakfast — bread and milk — he goes to work.\n\nIn Kigali the roads are full of everyone coming to work. Uwimana sees the sun rising above the hills. "Good morning, Kigali!" he says in his heart.\n\nUwimana has a job teaching at a school in Remera. The children appreciate him because he teaches well. Every evening, Uwimana returns home happy.`,
     vocabulary: [
@@ -59,8 +59,8 @@ const stories: Story[] = [
     title: 'The Market Day',
     titleKiny: 'Ku Isoko',
     level: 'Beginner',
-    levelColor: '#20603D',
-    emoji: '🛒',
+    levelColor: '#2F9E6E',
+    icon: 'shoppingBag',
     text: `Amina na nyirasenge bajya ku isoko buri wa gatanu. Isoko iri hafi y'inzu yabo. Bajya kugura imboga n'imbuto — ibishyimbo, igitoki, indimu, n'imbogo.\n\nUmucuruzi abaza: "Mushaka iki?"\nAmina aramusubiza: "Dushaka ibishyimbo na igitoki, murakoze."\nUmucuruzi arasubiza: "Ni amafaranga magana abiri."\n\nBamaze kugura, Amina na nyirasenge baramarana. Isoko yarimo abantu benshi n'amabara menshi y'imbuto. Bataha nishimye n'urutaka rwuzuye.`,
     translation: `Amina and her aunt go to the market every Friday. The market is near their home. They go to buy vegetables and fruits — beans, bananas, lemons, and greens.\n\nThe seller asks: "What do you want?"\nAmina answers: "We want beans and bananas, thank you."\nThe seller responds: "That is two hundred francs."\n\nAfter buying, Amina and her aunt talk together. The market was full of many people and many colors of fruit. They go home happy with a full basket.`,
     vocabulary: [
@@ -84,8 +84,8 @@ const stories: Story[] = [
     title: 'The Gorilla Trekkers',
     titleKiny: "Abashakashatsi b'Ingagi",
     level: 'Intermediate',
-    levelColor: '#F9A825',
-    emoji: '🦍',
+    levelColor: '#C9891C',
+    icon: 'pawPrint',
     text: `Mu mashyamba ya Virunga, ingagi zijya zibana mu miryango. Ingagi ifite umuryango wayo — sekuru, nyirabukwe, n'abana bato. Ingagi ni ikinyabuzima gikomeye gifite ubwenge bwinshi.\n\nAbashyitsi baturuka mu bihugu bitandukanye bajya mu ishyamba kureba ingagi. Umuyobozi w'ingendo abagira inama: "Nimukurikire inzira, ntimuvuge cyane, kandi murebe gusa."\n\nMu ishyamba, ingagi ntizigunga — zikomeza gusa imirimo yazo: kurya ibitoki byo mu ishyamba, gukinana, n'ubu aborozi b'abana barabirinda. Ni ishusho nziza cyane y'ubukungu n'umuco w'u Rwanda.`,
     translation: `In the Virunga forests, gorillas live in family groups. A gorilla has its own family — grandfather, grandmother, and young children. The gorilla is a strong animal with great intelligence.\n\nVisitors from different countries go into the forest to see gorillas. The tour guide advises them: "Follow the path, do not speak too much, and only look."\n\nIn the forest, gorillas do not fear — they simply continue their activities: eating forest bananas, playing, and the caregivers of the young ones protect them. It is a very beautiful image of Rwanda's nature and culture.`,
     vocabulary: [
@@ -109,8 +109,8 @@ const stories: Story[] = [
     title: 'The Hills of Rwanda',
     titleKiny: "Imisozi y'u Rwanda",
     level: 'Intermediate',
-    levelColor: '#F9A825',
-    emoji: '🏔️',
+    levelColor: '#C9891C',
+    icon: 'mountain',
     text: `U Rwanda bwitwa "Igihugu cy'imisozi igihumbi" kubera ko hano hari imisozi myinshi cyane. Imisozi igwa yo ku majyaruguru, aho imisozi ya Virunga iherereye, igera kuri kilometero icumi hejuru y'inyanja.\n\nImisozi y'u Rwanda ifite ubuziranenge bw'amashyamba, ibiyahe, n'amabuye mashya. Abahinzi bakunda gutuza hano kubera ubutaka bwiza. Amababi y'icyatsi, ameza ya kafeyi, na tiye byaratse neza kuri iyi misozi.\n\nIkintu cy'akamaaro ni uko imisozi itanga amazi meza akoreshwa mu mirima no mu miryango. Ni ukuri ko imisozi ifasha u Rwanda kuba igihugu cy'amahoro n'ubuziranenge.`,
     translation: `Rwanda is called the "Land of a Thousand Hills" because there are very many hills here. The hills in the north, where the Virunga mountains are located, reach up to ten kilometers above sea level.\n\nRwanda's hills have the richness of forests, tea plantations, and fresh stones. Farmers love settling here because of the good soil. Tea leaves, coffee, and tea have grown well on these hills.\n\nA remarkable thing is how the hills provide clean water used in fields and homes. It is true that the hills help Rwanda to be a country of peace and natural richness.`,
     vocabulary: [
@@ -134,8 +134,8 @@ const stories: Story[] = [
     title: 'Inanga — The Rwandan Harp',
     titleKiny: "Inanga y'u Rwanda",
     level: 'Advanced',
-    levelColor: '#7B1FA2',
-    emoji: '🎵',
+    levelColor: '#7C5CBF',
+    icon: 'music',
     text: `Inanga ni umuziki w'akamaro cyane mu nkuru z'u Rwanda. Inanga irashushanya intego z'u Rwanda bw'umuco, urukundo, n'amateka mashya. Inanga igizwe n'inzizi z'umunyinya zishyirwa ku kibaho kirekire.\n\nAbahanzi b'inanga babayeho kuva kera, barahita bahimbura indirimbo z'ibyishimo n'inzira zigorofa. Inanga yakoreshwaga cyane mu mikino y'abami n'ibibereho by'abasore bakundagana.\n\nUyu munsi, inanga irakomeza kwandikwa mu mashuri n'amacakara y'umuco w'u Rwanda. Abana benshi biga gukina inanga ngo bakomeze umurage w'abakurambere babo. Inanga ni intangarugero y'ubwenge bw'u Rwanda.`,
     translation: `The inanga is a very important musical instrument in the stories of Rwanda. The inanga represents the goals of Rwanda's culture, love, and new history. The inanga is made of dry banana fibers placed on a long board.\n\nInanga musicians have existed from long ago, always composing songs of joy and complex melodies. The inanga was widely used in the games of kings and in the lives of young people in love.\n\nToday, the inanga continues to be taught in schools and Rwandan cultural centers. Many children learn to play the inanga to continue the heritage of their ancestors. The inanga is a symbol of Rwanda's intelligence.`,
     vocabulary: [
@@ -218,10 +218,10 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
   if (view === 'list') {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <LinearGradient colors={['#0d3320', '#20603D']} style={styles.header}>
-          <Text style={styles.headerTitle}>📖 Inkuru</Text>
+        <View style={[styles.header, { backgroundColor: colors.primary }]}>
+          <View style={styles.headerTitleRow}><AppIcon name="bookOpen" size={20} color="#FFFFFF" /><Text style={styles.headerTitle}>Inkuru</Text></View>
           <Text style={styles.headerSub}>Kinyarwanda Reading Stories</Text>
-        </LinearGradient>
+        </View>
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[styles.sectionNote, { color: colors.textSecondary }]}>Read · Learn · Understand</Text>
           {stories.map(story => {
@@ -233,7 +233,7 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
                 onPress={() => openStory(story)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.cardEmoji}>{story.emoji}</Text>
+                <View style={[styles.cardIcon, { backgroundColor: story.levelColor + '18' }]}><AppIcon name={story.icon} size={24} color={story.levelColor} /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>{story.title}</Text>
                   <Text style={[styles.cardTitleKiny, { color: colors.textSecondary }]}>{story.titleKiny}</Text>
@@ -241,8 +241,8 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
                     <View style={[styles.levelBadge, { backgroundColor: story.levelColor + '22', borderColor: story.levelColor }]}>
                       <Text style={[styles.levelText, { color: story.levelColor }]}>{story.level}</Text>
                     </View>
-                    <Text style={[styles.xpText, { color: '#F9A825' }]}>+{story.xpReward} XP</Text>
-                    {done && <Text style={{ fontSize: 14 }}>✅</Text>}
+                    <Text style={[styles.xpText, { color: '#C9891C' }]}>+{story.xpReward} XP</Text>
+                    {done && <AppIcon name="checkCircle" size={15} color={colors.success} />}
                   </View>
                 </View>
                 <AppIcon name="arrowRight" size={18} color={colors.textMuted} />
@@ -260,15 +260,15 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
   if (view === 'reading' && selected) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <LinearGradient colors={['#0d3320', '#20603D']} style={styles.readHeader}>
+        <View style={[styles.readHeader, { backgroundColor: colors.primary }]}>
           <TouchableOpacity onPress={() => setView('list')} style={{ padding: 8 }}>
-            <AppIcon name="arrowLeft" size={20} color="#fff" />
+            <AppIcon name="arrowLeft" size={20} color={colors.text} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.readTitle}>{selected.emoji} {selected.title}</Text>
+            <View style={styles.readTitleRow}><AppIcon name={selected.icon} size={18} color="#FFFFFF" /><Text style={styles.readTitle}>{selected.title}</Text></View>
             <Text style={styles.readTitleKiny}>{selected.titleKiny}</Text>
           </View>
-        </LinearGradient>
+        </View>
         <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
           <View style={[styles.textBox, { backgroundColor: colors.card }]}>
             <Text style={[styles.storyText, { color: colors.text }]}>{selected.text}</Text>
@@ -278,7 +278,7 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
             onPress={() => setShowTranslation(v => !v)}
           >
             <Text style={[styles.transBtnText, { color: colors.primary }]}>
-              {showTranslation ? '🙈 Hide Translation' : '🌍 Show English Translation'}
+              {showTranslation ? 'Hide Translation' : 'Show English Translation'}
             </Text>
           </TouchableOpacity>
           {showTranslation && (
@@ -286,7 +286,7 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
               <Text style={[styles.storyText, { color: colors.textSecondary, fontStyle: 'italic' }]}>{selected.translation}</Text>
             </View>
           )}
-          <Text style={[styles.vocabTitle, { color: colors.text }]}>📚 Key Vocabulary</Text>
+          <View style={styles.vocabTitleRow}><AppIcon name="bookOpen" size={16} color={colors.primary} /><Text style={[styles.vocabTitle, { color: colors.text }]}>Key Vocabulary</Text></View>
           <View style={[styles.vocabBox, { backgroundColor: colors.card }]}>
             {selected.vocabulary.map(v => (
               <View key={v.kiny} style={[styles.vocabRow, { borderBottomColor: colors.border }]}>
@@ -295,8 +295,8 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
               </View>
             ))}
           </View>
-          <TouchableOpacity style={[styles.quizBtn, { backgroundColor: '#20603D' }]} onPress={startQuiz} activeOpacity={0.85}>
-            <Text style={styles.quizBtnText}>📝 Start Comprehension Quiz (+{selected.xpReward} XP)</Text>
+          <TouchableOpacity style={[styles.quizBtn, { backgroundColor: '#0B6E84' }]} onPress={startQuiz} activeOpacity={0.85}>
+            <AppIcon name="pencil" size={16} color="#FFFFFF" /><Text style={styles.quizBtnText}>Start Comprehension Quiz (+{selected.xpReward} XP)</Text>
           </TouchableOpacity>
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -309,25 +309,25 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
     const q = selected.questions[quizIdx];
     const answered = answers[q.id];
     return (
-      <LinearGradient colors={['#0a1628', '#1a2a4a', '#0d3320']} style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.quizHeader}>
           <TouchableOpacity onPress={() => setView('reading')} style={{ padding: 8 }}>
-            <AppIcon name="arrowLeft" size={20} color="#fff" />
+            <AppIcon name="arrowLeft" size={20} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.quizProgress}>{quizIdx + 1} / {selected.questions.length}</Text>
+          <Text style={[styles.quizProgress, { color: colors.textSecondary }]}>{quizIdx + 1} / {selected.questions.length}</Text>
         </View>
         <View style={styles.quizBody}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>{selected.emoji}</Text>
-          <Text style={styles.quizQ}>{q.question}</Text>
+          <View style={[styles.quizIconWrap, { backgroundColor: selected.levelColor + '18' }]}><AppIcon name={selected.icon} size={34} color={selected.levelColor} /></View>
+          <Text style={[styles.quizQ, { color: colors.text }]}>{q.question}</Text>
           <View style={{ gap: 10, width: '100%' }}>
             {q.options.map(opt => {
               const isSelected = answered === opt;
               const isRight = opt === q.answer;
-              let bg = 'rgba(255,255,255,0.08)';
-              let border = 'rgba(255,255,255,0.15)';
+              let bg = colors.card;
+              let border = colors.border;
               if (answered) {
-                if (isRight) { bg = '#20603D33'; border = '#20603D'; }
-                else if (isSelected) { bg = '#E74C3C22'; border = '#E74C3C'; }
+                if (isRight) { bg = colors.success + '18'; border = colors.success; }
+                else if (isSelected) { bg = colors.error + '18'; border = colors.error; }
               }
               return (
                 <TouchableOpacity
@@ -337,15 +337,15 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
                   disabled={!!answered}
                   activeOpacity={0.75}
                 >
-                  <Text style={[styles.quizOptText, answered && isRight && { color: '#4CAF50' }, answered && isSelected && !isRight && { color: '#E74C3C' }]}>{opt}</Text>
-                  {answered && isRight && <Text>✅</Text>}
-                  {answered && isSelected && !isRight && <Text>❌</Text>}
+                  <Text style={[styles.quizOptText, { color: colors.text }, answered && isRight && { color: colors.success }, answered && isSelected && !isRight && { color: colors.error }]}>{opt}</Text>
+                  {answered && isRight && <AppIcon name="checkCircle" size={18} color="#4CC38A" />}
+                  {answered && isSelected && !isRight && <AppIcon name="closeCircle" size={18} color="#F07171" />}
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -354,20 +354,20 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
     const pct = Math.round((score / selected.questions.length) * 100);
     const earned = Math.floor((score / selected.questions.length) * selected.xpReward);
     return (
-      <LinearGradient colors={['#0a1628', '#1a2a4a', '#0d3320']} style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.resultBox}>
-          <Text style={{ fontSize: 60 }}>{pct === 100 ? '🏆' : pct >= 75 ? '⭐' : pct >= 50 ? '👍' : '📚'}</Text>
-          <Text style={styles.resultTitle}>{pct === 100 ? 'Perfect!' : pct >= 75 ? 'Great job!' : pct >= 50 ? 'Good effort!' : 'Keep reading!'}</Text>
-          <Text style={styles.resultScore}>{score}/{selected.questions.length} correct · {pct}%</Text>
-          <Text style={styles.resultXP}>+{earned} XP earned!</Text>
-          <TouchableOpacity style={[styles.quizBtn, { backgroundColor: '#20603D', marginTop: 24 }]} onPress={() => setView('list')}>
-            <Text style={styles.quizBtnText}>← Back to Stories</Text>
+          <View style={styles.resultIcon}><AppIcon name={pct === 100 ? 'trophy' : pct >= 75 ? 'star' : pct >= 50 ? 'thumbsUp' : 'bookOpen'} size={36} color={colors.primary} /></View>
+          <Text style={[styles.resultTitle, { color: colors.text }]}>{pct === 100 ? 'Perfect!' : pct >= 75 ? 'Great job!' : pct >= 50 ? 'Good effort!' : 'Keep reading!'}</Text>
+          <Text style={[styles.resultScore, { color: colors.textSecondary }]}>{score}/{selected.questions.length} correct · {pct}%</Text>
+          <Text style={[styles.resultXP, { color: colors.success }]}>+{earned} XP earned!</Text>
+          <TouchableOpacity style={[styles.quizBtn, { backgroundColor: colors.primary, marginTop: 24 }]} onPress={() => setView('list')}>
+            <AppIcon name="arrowLeft" size={16} color="#FFFFFF" /><Text style={styles.quizBtnText}>Back to Stories</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.quizBtn, { backgroundColor: '#F9A825', marginTop: 12 }]} onPress={() => openStory(selected)}>
-            <Text style={[styles.quizBtnText, { color: '#1A1A1A' }]}>📖 Read Again</Text>
+          <TouchableOpacity style={[styles.quizBtn, { backgroundColor: colors.secondary, marginTop: 12 }]} onPress={() => openStory(selected)}>
+            <AppIcon name="bookOpen" size={16} color="#14212B" /><Text style={[styles.quizBtnText, { color: '#14212B' }]}>Read Again</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -377,38 +377,43 @@ export const StoriesScreen: React.FC<{ navigation: any }> = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingTop: 54, paddingBottom: 20, paddingHorizontal: 20 },
-  headerTitle: { fontSize: 24, fontWeight: '900', color: '#FFD700' },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: '#FFFFFF' },
   headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
   sectionNote: { fontSize: 13, textAlign: 'center', marginVertical: 14, fontStyle: 'italic' },
   card: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 12, padding: 14, borderRadius: 14, borderWidth: 1.5, gap: 12 },
-  cardEmoji: { fontSize: 32 },
+  cardIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontSize: 15, fontWeight: '800' },
   cardTitleKiny: { fontSize: 11, marginTop: 2 },
   levelBadge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   levelText: { fontSize: 10, fontWeight: '700' },
   xpText: { fontSize: 12, fontWeight: '700' },
   readHeader: { flexDirection: 'row', alignItems: 'center', paddingTop: 54, paddingBottom: 16, paddingHorizontal: 16, gap: 12 },
-  readTitle: { fontSize: 16, fontWeight: '900', color: '#FFD700' },
+  readTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  readTitle: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   readTitleKiny: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
   textBox: { borderRadius: 14, padding: 18, marginBottom: 14 },
   storyText: { fontSize: 15, lineHeight: 26 },
   transBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 10 },
   transBtnText: { fontSize: 13, fontWeight: '700' },
-  vocabTitle: { fontSize: 16, fontWeight: '900', marginBottom: 10 },
+  vocabTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  vocabTitle: { fontSize: 16, fontWeight: '800' },
   vocabBox: { borderRadius: 12, overflow: 'hidden', marginBottom: 20 },
   vocabRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, borderBottomWidth: 1 },
   vocabKiny: { fontSize: 14, fontWeight: '700' },
   vocabEng: { fontSize: 13 },
-  quizBtn: { borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 8 },
+  quizBtn: { flexDirection: 'row', justifyContent: 'center', borderRadius: 14, padding: 16, alignItems: 'center', gap: 7, marginBottom: 8 },
   quizBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   quizHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 54, paddingHorizontal: 20, paddingBottom: 10 },
-  quizProgress: { color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: '700' },
+  quizProgress: { fontSize: 14, fontWeight: '700' },
   quizBody: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center' },
-  quizQ: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', marginBottom: 24, lineHeight: 28 },
+  quizQ: { fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 24, lineHeight: 28 },
   quizOpt: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderRadius: 12, padding: 16 },
-  quizOptText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF', flex: 1 },
+  quizOptText: { fontSize: 15, fontWeight: '600', flex: 1 },
   resultBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  resultTitle: { fontSize: 28, fontWeight: '900', color: '#FFD700', marginTop: 12 },
-  resultScore: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 8 },
-  resultXP: { fontSize: 20, fontWeight: '900', color: '#4CAF50', marginTop: 8 },
+  resultIcon: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', backgroundColor: '#D9EEF3' },
+  quizIconWrap: { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  resultTitle: { fontSize: 27, fontWeight: '800', marginTop: 12 },
+  resultScore: { fontSize: 15, marginTop: 8 },
+  resultXP: { fontSize: 19, fontWeight: '800', marginTop: 8 },
 });

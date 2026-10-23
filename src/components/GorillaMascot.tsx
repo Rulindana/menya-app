@@ -1,36 +1,41 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { AppIcon } from './ui/AppIcon';
+import { MenyaMascot } from './MenyaMascot';
 
 interface GorillaProps {
   size?: number;
   mood?: 'happy' | 'celebrate' | 'sad' | 'thinking';
 }
 
+const moodConfig: Record<string, { icon: string; color: string; tint: string }> = {
+  celebrate: { icon: 'partyPopper', color: '#C9891C', tint: '#FBF3E3' },
+  sad: { icon: 'frown', color: '#D64545', tint: '#FCEAEA' },
+  thinking: { icon: 'help', color: '#0B6E84', tint: '#D9EEF3' },
+};
+
 export const GorillaMascot: React.FC<GorillaProps> = ({ size = 100, mood = 'happy' }) => {
-  const scale = size / 100;
-
-  const expressions: Record<string, string> = {
-    happy: '🦍',
-    celebrate: '🦍',
-    sad: '🦍',
-    thinking: '🦍',
-  };
-
-  const moodEmoji: Record<string, string> = {
-    happy: '😊',
-    celebrate: '🎉',
-    sad: '😢',
-    thinking: '🤔',
-  };
+  const badge = moodConfig[mood];
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      <Text style={[styles.gorilla, { fontSize: size * 0.7 }]}>
-        {expressions[mood]}
-      </Text>
-      {mood !== 'happy' && (
-        <View style={[styles.moodBadge, { bottom: 0, right: 0 }]}>
-          <Text style={{ fontSize: size * 0.25 }}>{moodEmoji[mood]}</Text>
+      <MenyaMascot size={size} />
+      {badge && (
+        <View
+          style={[
+            styles.moodBadge,
+            {
+              backgroundColor: badge.tint,
+              borderColor: badge.color,
+              width: size * 0.3,
+              height: size * 0.3,
+              borderRadius: size * 0.15,
+              right: -size * 0.02,
+              bottom: -size * 0.02,
+            },
+          ]}
+        >
+          <AppIcon name={badge.icon} size={size * 0.17} color={badge.color} />
         </View>
       )}
     </View>
@@ -43,13 +48,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  gorilla: {
-    textAlign: 'center',
-  },
   moodBadge: {
     position: 'absolute',
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
   },
 });

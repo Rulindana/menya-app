@@ -1,52 +1,59 @@
 // Menya App — Rwanda flag colors theme
+import { GOOGLE_SANS } from './typography';
+
 export const Colors = {
-  // Rwanda flag colors
-  green: '#20603D',
-  greenLight: '#2D8653',
-  greenMid: '#1A7A3F',
-  yellow: '#FAD201',
-  yellowLight: '#FFE44D',
-  blue: '#00A1DE',
-  blueLight: '#33C1F5',
-  blueDark: '#0077A8',
+  // Brand — deep teal with a muted gold accent
+  green: '#2F9E6E',
+  greenLight: '#E6F6EE',
+  greenMid: '#257A57',
+  yellow: '#D9A441',
+  yellowLight: '#FBF3E3',
+  blue: '#2B6CB0',
+  blueLight: '#E8F1FA',
+  blueDark: '#22578C',
+  white: '#FFFFFF',
+  teal: '#0B6E84',
+  tealDark: '#085468',
+  tealLight: '#D9EEF3',
 
   // UI Colors
-  white: '#FFFFFF',
-  background: '#F7FFFE',
+  background: '#F4F7F9',
   cardBg: '#FFFFFF',
-  border: '#E0F0E9',
+  border: '#DCE5EA',
 
   // Text
-  textDark: '#1A1A2E',
-  textMid: '#4A5568',
-  textLight: '#8899AA',
+  textDark: '#14212B',
+  textMid: '#536471',
+  textLight: '#83919D',
 
   // Feedback
-  correct: '#58CC02',
-  correctLight: '#D7FFB8',
-  wrong: '#FF4B4B',
-  wrongLight: '#FFE0E0',
+  correct: '#2F9E6E',
+  correctLight: '#E6F6EE',
+  wrong: '#D64545',
+  wrongLight: '#FCEAEA',
 
   // XP / Progress
-  xpOrange: '#FF9600',
-  streakRed: '#FF4B4B',
-  heartRed: '#FF4B4B',
+  xpOrange: '#C9891C',
+  streakRed: '#D64545',
+  heartRed: '#D64545',
 
   // Lesson path node colors
-  node1: '#20603D',
-  node2: '#FAD201',
-  node3: '#00A1DE',
-  nodeLocked: '#CCCCCC',
+  node1: '#0B6E84',
+  node2: '#D9A441',
+  node3: '#2B6CB0',
+  nodeLocked: '#DCE5EA',
 
   // Tab bar
-  tabActive: '#20603D',
-  tabInactive: '#AAAAAA',
+  tabActive: '#0B6E84',
+  tabInactive: '#8A99A5',
   tabBg: '#FFFFFF',
 };
 
 export const Fonts = {
-  regular: 'System',
-  bold: 'System',
+  regular: GOOGLE_SANS.regular,
+  medium: GOOGLE_SANS.medium,
+  semibold: GOOGLE_SANS.semibold,
+  bold: GOOGLE_SANS.bold,
   size: {
     xs: 11,
     sm: 13,
@@ -67,17 +74,17 @@ export const Radius = {
 
 export const Shadow = {
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowColor: '#14212B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   button: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowColor: '#14212B',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
   },
 };

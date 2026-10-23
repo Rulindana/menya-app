@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, StyleSheet } from 'react-native';
+import { View, Animated, StyleSheet } from 'react-native';
+import { Text } from './ui/AppText';
 import { useHaptics } from '../hooks/useHaptics';
+import { AppIcon } from './ui/AppIcon';
 
 interface XPPopupProps {
   amount: number;
@@ -116,31 +118,31 @@ export const XPPopup: React.FC<XPPopupProps> = ({
     switch (type) {
       case 'lesson':
         return {
-          bgColor: '#FFD700',
-          textColor: '#1A1A1A',
+          bgColor: '#D9A441',
+          textColor: '#14212B',
           label: 'LESSON COMPLETE!',
-          icon: '🎉',
+          icon: 'award',
         };
       case 'streak':
         return {
-          bgColor: '#FF6B35',
+          bgColor: '#C9891C',
           textColor: '#FFFFFF',
           label: 'STREAK BONUS!',
-          icon: '🔥',
+          icon: 'flame',
         };
       case 'bonus':
         return {
-          bgColor: '#7B1FA2',
+          bgColor: '#7C5CBF',
           textColor: '#FFFFFF',
           label: 'LEVEL UP BONUS!',
-          icon: '⬆️',
+          icon: 'trendingUp',
         };
       default:
         return {
-          bgColor: '#16834B',
+          bgColor: '#2F9E6E',
           textColor: '#FFFFFF',
           label: 'CORRECT!',
-          icon: '✓',
+          icon: 'check',
         };
     }
   };
@@ -173,7 +175,7 @@ export const XPPopup: React.FC<XPPopupProps> = ({
       
       {/* Main popup */}
       <View style={[styles.popup, { backgroundColor: config.bgColor }]}>
-        <Text style={styles.icon}>{config.icon}</Text>
+        <AppIcon name={config.icon} size={24} color={config.textColor} />
         <View style={styles.textContainer}>
           <Text style={[styles.label, { color: config.textColor }]}>
             {config.label}
@@ -338,7 +340,7 @@ export const XPLoading: React.FC<XPLoadingProps> = ({
           },
         ]}
       >
-        <Text style={styles.loadingEmoji}>⭐</Text>
+        <AppIcon name="star" size={26} color="#D9A441" />
       </Animated.View>
       <Text style={styles.loadingText}>{message}</Text>
     </View>
@@ -398,7 +400,7 @@ const styles = StyleSheet.create({
   particleText: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#FFD700',
+    color: '#D9A441',
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
@@ -406,7 +408,7 @@ const styles = StyleSheet.create({
   particleXP: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFD700',
+    color: '#D9A441',
   },
   loadingContainer: {
     position: 'absolute',

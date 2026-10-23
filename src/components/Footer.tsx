@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Linking, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Linking, StyleSheet } from 'react-native';
+import { Text } from './ui/AppText';
 import { useTheme } from '../theme/themeContext';
+import { AppIcon } from './ui/AppIcon';
 
 const PRIVACY_POLICY_URL = 'https://sites.google.com/view/menya-ikinyarwanda';
 
@@ -22,9 +24,12 @@ export const Footer: React.FC = () => {
         activeOpacity={0.7}
         style={styles.privacyBtn}
       >
-        <Text style={[styles.privacyText, { color: colors.textMuted }]}>
-          🔒 Privacy Policy
-        </Text>
+        <View style={styles.privacyRow}>
+          <AppIcon name="lock" size={12} color={colors.textMuted} />
+          <Text style={[styles.privacyText, { color: colors.textMuted }]}>
+            Privacy Policy
+          </Text>
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -62,5 +67,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textDecorationLine: 'underline',
     opacity: 0.7,
+  },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
 });

@@ -1,17 +1,18 @@
 import React, { useState, useRef } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Animated,
   ScrollView,
-  TextInput,
 } from 'react-native';
+import { Text } from '../components/ui/AppText';
+import { TextInput } from '../components/ui/AppTextInput';
 import { AppModal } from '../components/AppModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../components/ui/AppIcon';
 import { GorillaMascot } from '../components/GorillaMascot';
+import { HeartsSheet } from '../components/HeartsSheet';
 import { AnimatedButton, GlowButton, PulseButton } from '../components/AnimatedButton';
 import { XPPopup } from '../components/XPPopup';
 import { getLessonById, getUnitForLesson, getTotalLessons } from '../data/lessons';
@@ -56,6 +57,11 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ route, navigation })
   const bounceAnim = useRef(new Animated.Value(1)).current;
 
   const [showQuitModal, setShowQuitModal] = useState(false);
+  const [showOutOfHearts, setShowOutOfHearts] = useState(false);
+
+  React.useEffect(() => {
+    if (progress.hearts <= 0) setShowOutOfHearts(true);
+  }, []);
 
   // Generate dynamic questions once per lesson mount — never the same twice, no duplicates
   const [dynamicExercises] = useState(() => {
@@ -190,6 +196,10 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ route, navigation })
   const handleNext = () => {
     haptics.lightTap();
     if (finished) return;
+    if (useAppStore.getState().progress.hearts <= 0) {
+      setShowOutOfHearts(true);
+      return;
+    }
     if (currentIdx + 1 >= totalExercises) {
       haptics.celebration();
       const accuracy = correctCount / totalExercises;
@@ -239,7 +249,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ route, navigation })
     );
   }
 
-  const unitColor = unit?.color || '#20603D';
+  const unitColor = unit?.color || '#0B6E84';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -365,12 +375,17 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ route, navigation })
                   { color: isCorrect ? colors.success : colors.error },
                 ]}
               >
-                {isCorrect ? 'Nibyo! Correct! 🎉' : 'Sibyo! Wrong!'}
+                {isCorrect ? 'Nibyo! Correct!' : 'Sibyo! Wrong!'}
               </Text>
               {!isCorrect && (
-                <Text style={[styles.correctAnswer, { color: colors.textSecondary }]}>
-                  ✓ Answer: {exercise.answer}
-                </Text>
+                <>
+                  <Text style={[styles.correctAnswer, { color: colors.textSecondary }]}>
+                    Answer: {exercise.answer}
+                  </Text>
+                  <Text style={[styles.heartPenalty, { color: colors.error }]}>
+                    −1 heart · Each mistake costs 1 heart
+                  </Text>
+                </>
               )}
             </View>
           </View>
@@ -404,10 +419,10 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ route, navigation })
         title="Siga isomo?"
         message="Urashaka guhagarika? Urakoze kwiga!"
         type="warning"
-        icon="📝"
+        icon="pencil"
         cancelText="Komeza"
         confirmText="Siga"
-        confirmColor="#E74C3C"
+        confirmColor={colors.error}
         onCancel={() => setShowQuitModal(false)}
         onConfirm={() => {
           setShowQuitModal(false);
@@ -418,14 +433,27 @@ export const LessonScreen: React.FC<LessonScreenProps> = ({ route, navigation })
       {/* Level-up celebration modal */}
       <AppModal
         visible={levelUpTo !== null}
-        title={`🎉 Level ${levelUpTo}!`}
-        message={`Wasuniwe! Ugeze kuri Level ${levelUpTo}!\nUkomeze kwiga Ikinyarwanda! 🇷🇼`}
+        title={`Level ${levelUpTo}!`}
+        message={`Wasuniwe! Ugeze kuri Level ${levelUpTo}!\nUkomeze kwiga Ikinyarwanda!`}
         type="success"
-        icon="⭐"
+        icon="star"
         confirmText="Yego! Let's go!"
         showCancel={false}
         onCancel={() => setLevelUpTo(null)}
         onConfirm={() => setLevelUpTo(null)}
+      />
+
+      <HeartsSheet
+        visible={showOutOfHearts}
+        title="You ran out of hearts"
+        onClose={() => {
+          setShowOutOfHearts(false);
+          if (useAppStore.getState().progress.hearts <= 0) navigation.goBack();
+        }}
+        onPractice={() => {
+          setShowOutOfHearts(false);
+          navigation.navigate('Practice');
+        }}
       />
     </View>
   );
@@ -447,7 +475,12 @@ const MultipleChoiceExercise: React.FC<{
       <Text style={[styles.exerciseType, { color: colors.primary }]}>Multiple Choice</Text>
     </View>
     <Text style={[styles.question, { color: colors.text }]}>{exercise.question}</Text>
-    {exercise.hint && <Text style={[styles.hint, { color: colors.textSecondary }]}>💡 {exercise.hint}</Text>}
+    {exercise.hint && (
+      <View style={styles.hintRow}>
+        <AppIcon name="info" size={13} color={colors.textSecondary} />
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>{exercise.hint}</Text>
+      </View>
+    )}
     <View style={styles.optionsGrid}>
       {(exercise.options || []).map((opt) => {
         const isSelected = selected === opt;
@@ -504,10 +537,16 @@ const FillBlankExercise: React.FC<{
 }> = ({ exercise, selected, showResult, isCorrect, unitColor, onSelect, colors }) => (
   <View>
     <View style={styles.exerciseTypeRow}>
-      <Text style={[styles.exerciseType, { color: '#F9A825' }]}>✏️ Fill in the Blank</Text>
+      <AppIcon name="pencil" size={14} color="#C9891C" />
+      <Text style={[styles.exerciseType, { color: '#C9891C' }]}>Fill in the Blank</Text>
     </View>
     <Text style={[styles.question, { color: colors.text }]}>{exercise.question}</Text>
-    {exercise.hint && <Text style={[styles.hint, { color: colors.textSecondary }]}>💡 {exercise.hint}</Text>}
+    {exercise.hint && (
+      <View style={styles.hintRow}>
+        <AppIcon name="info" size={13} color={colors.textSecondary} />
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>{exercise.hint}</Text>
+      </View>
+    )}
     <View style={styles.optionsGrid}>
       {(exercise.blanks || []).map((word) => {
         const isSelected = selected === word;
@@ -526,8 +565,8 @@ const FillBlankExercise: React.FC<{
             disabled={showResult}
             activeOpacity={0.75}
           >
-            {showResult && isRight && <Text style={{ marginRight: 6 }}>✅</Text>}
-            {showResult && isSelected && !isRight && <Text style={{ marginRight: 6 }}>❌</Text>}
+            {showResult && isRight && <AppIcon name="checkCircle" size={16} color={colors.success} style={{ marginRight: 6 }} />}
+            {showResult && isSelected && !isRight && <AppIcon name="closeCircle" size={16} color={colors.error} style={{ marginRight: 6 }} />}
             <Text style={[styles.optionText, { color: textColor }]}>{word}</Text>
           </TouchableOpacity>
         );
@@ -593,7 +632,8 @@ const WordMatchExercise: React.FC<{
   return (
     <View>
       <View style={styles.exerciseTypeRow}>
-        <Text style={[styles.exerciseType, { color: '#1976D2' }]}>🔗 Word Match</Text>
+        <AppIcon name="link" size={14} color="#2B6CB0" />
+        <Text style={[styles.exerciseType, { color: '#2B6CB0' }]}>Word Match</Text>
       </View>
       <Text style={[styles.question, { color: colors.text }]}>{exercise.question}</Text>
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
@@ -606,14 +646,14 @@ const WordMatchExercise: React.FC<{
               <TouchableOpacity
                 key={p.kiny}
                 style={[styles.matchChip, {
-                  backgroundColor: isMatched ? colors.success + '20' : isSelected ? '#1976D222' : colors.card,
-                  borderColor: isMatched ? colors.success : isSelected ? '#1976D2' : colors.border,
+                  backgroundColor: isMatched ? colors.success + '20' : isSelected ? '#2B6CB022' : colors.card,
+                  borderColor: isMatched ? colors.success : isSelected ? '#2B6CB0' : colors.border,
                 }]}
                 onPress={() => !isMatched && !showResult && onSelectKiny(p.kiny)}
                 disabled={isMatched || showResult}
                 activeOpacity={0.75}
               >
-                <Text style={[styles.matchChipText, { color: isMatched ? colors.success : isSelected ? '#1976D2' : colors.text }]}>{p.kiny}</Text>
+                <Text style={[styles.matchChipText, { color: isMatched ? colors.success : isSelected ? '#2B6CB0' : colors.text }]}>{p.kiny}</Text>
               </TouchableOpacity>
             );
           })}
@@ -640,7 +680,7 @@ const WordMatchExercise: React.FC<{
         </View>
       </View>
       {selectedKiny && !showResult && (
-        <Text style={{ color: '#1976D2', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+        <Text style={{ color: '#2B6CB0', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
           Now tap the English meaning for "{selectedKiny}"
         </Text>
       )}
@@ -661,7 +701,8 @@ const SentenceBuildExercise: React.FC<{
 }> = ({ exercise, builtSentence, remainingWords, showResult, isCorrect, colors, onTapWord, onCheck }) => (
   <View>
     <View style={styles.exerciseTypeRow}>
-      <Text style={[styles.exerciseType, { color: '#7B1FA2' }]}>🧩 Build the Sentence</Text>
+      <AppIcon name="puzzle" size={14} color={colors.primary} />
+      <Text style={[styles.exerciseType, { color: colors.primary }]}>Build the Sentence</Text>
     </View>
     <Text style={[styles.question, { color: colors.text }]}>{exercise.question}</Text>
     {/* Built sentence area */}
@@ -674,13 +715,13 @@ const SentenceBuildExercise: React.FC<{
             <TouchableOpacity
               key={i}
               style={[styles.wordChip, {
-                backgroundColor: showResult ? (isCorrect ? colors.success + '30' : colors.error + '30') : '#7B1FA2' + '18',
-                borderColor: showResult ? (isCorrect ? colors.success : colors.error) : '#7B1FA2',
+                backgroundColor: showResult ? (isCorrect ? colors.success + '30' : colors.error + '30') : '#7C5CBF' + '18',
+                borderColor: showResult ? (isCorrect ? colors.success : colors.error) : '#7C5CBF',
               }]}
               onPress={() => !showResult && onTapWord(word, true)}
               disabled={showResult}
             >
-              <Text style={{ color: showResult ? (isCorrect ? colors.success : colors.error) : '#7B1FA2', fontWeight: '700', fontSize: 14 }}>{word}</Text>
+              <Text style={{ color: showResult ? (isCorrect ? colors.success : colors.error) : '#7C5CBF', fontWeight: '700', fontSize: 14 }}>{word}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -702,11 +743,12 @@ const SentenceBuildExercise: React.FC<{
     {/* Check button */}
     {!showResult && builtSentence.length > 0 && (
       <TouchableOpacity
-        style={[styles.checkBtn, { backgroundColor: '#7B1FA2' }]}
+        style={[styles.checkBtn, { backgroundColor: '#7C5CBF' }]}
         onPress={onCheck}
         activeOpacity={0.8}
       >
-        <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>✓ Check Answer</Text>
+        <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>Check Answer</Text>
+        <AppIcon name="check" size={16} color="#FFFFFF" />
       </TouchableOpacity>
     )}
   </View>
@@ -734,11 +776,12 @@ const LessonComplete: React.FC<{
   return (
     <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.completeContainer}>
       <GorillaMascot size={120} mood="celebrate" />
-      <Text style={styles.completeTitle}>{isPerfect ? 'PERFECT! 🌟' : 'Warangije! 🎉'}</Text>
+      <Text style={styles.completeTitle}>{isPerfect ? 'PERFECT!' : 'Warangije!'}</Text>
       {isPerfect && (
-        <View style={{ backgroundColor: '#FFD700', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 6, marginBottom: 6 }}>
-          <Text style={{ color: '#1A1A1A', fontWeight: '900', fontSize: 14 }}>
-            🎯 Perfect Score! +{perfectBonus} Bonus XP!
+        <View style={styles.perfectBanner}>
+          <AppIcon name="target" size={16} color="#14212B" />
+          <Text style={styles.perfectBannerText}>
+            Perfect Score! +{perfectBonus} Bonus XP!
           </Text>
         </View>
       )}
@@ -746,7 +789,7 @@ const LessonComplete: React.FC<{
 
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <AppIcon name="star1" size={24} color="#FFD700" />
+          <AppIcon name="star1" size={24} color="#D9A441" />
           <Text style={styles.statCardValue}>{xpEarned} XP</Text>
           <Text style={styles.statCardLabel}>Earned</Text>
         </View>
@@ -764,15 +807,15 @@ const LessonComplete: React.FC<{
 
       {allLessonsComplete && (
         <PulseButton
-          style={[styles.homeBtn, { backgroundColor: '#FFD700', marginBottom: 12 }]}
+          style={[styles.homeBtn, { backgroundColor: '#D9A441', marginBottom: 12 }]}
           onPress={() => {
             haptics.lightTap();
             navigation.navigate('Certificate');
           }}
         >
-          <AppIcon name="trophy" size={20} color="#1A1A1A" />
-          <Text style={[styles.homeBtnText, { color: '#1A1A1A' }]}>
-            Get Certificate! 🏆
+          <AppIcon name="trophy" size={20} color="#14212B" />
+          <Text style={[styles.homeBtnText, { color: '#14212B' }]}>
+            Get Certificate
           </Text>
         </PulseButton>
       )}
@@ -780,7 +823,7 @@ const LessonComplete: React.FC<{
       {/* Retry button — only shown when accuracy < 50% */}
       {accuracy < 50 && (
         <AnimatedButton
-          style={[styles.homeBtn, { backgroundColor: '#FF6B35', marginBottom: 12 }]}
+          style={[styles.homeBtn, { backgroundColor: '#C9891C', marginBottom: 12 }]}
           onPress={() => {
             haptics.lightTap();
             // Navigate back to the same lesson fresh
@@ -788,7 +831,7 @@ const LessonComplete: React.FC<{
           }}
         >
           <AppIcon name="refresh" size={20} color="#FFFFFF" />
-          <Text style={styles.homeBtnText}>🔄 Ongera Ugerageze / Retry</Text>
+          <Text style={styles.homeBtnText}>Ongera Ugerageze / Retry</Text>
         </AnimatedButton>
       )}
 
@@ -869,7 +912,30 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 13,
     fontStyle: 'italic',
+    lineHeight: 18,
+    flex: 1,
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 5,
+    marginTop: 8,
     marginBottom: 16,
+  },
+  perfectBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FBF3E3',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginBottom: 8,
+  },
+  perfectBannerText: {
+    color: '#14212B',
+    fontWeight: '800',
+    fontSize: 13,
   },
   optionsGrid: { marginTop: 12, gap: 10 },
   optionBtn: {
@@ -895,6 +961,7 @@ const styles = StyleSheet.create({
   },
   resultTitle: { fontSize: 18, fontWeight: '800' },
   correctAnswer: { fontSize: 14, marginTop: 4 },
+  heartPenalty: { fontSize: 12, fontWeight: '700', marginTop: 4 },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -920,9 +987,9 @@ const styles = StyleSheet.create({
     padding: 30,
   },
   completeTitle: {
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: '900',
-    color: '#FFD700',
+    color: '#FFFFFF',
     marginTop: 16,
   },
   completeSubtitle: {
@@ -946,7 +1013,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFD700',
+    backgroundColor: '#D9A441',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 30,

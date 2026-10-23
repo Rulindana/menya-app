@@ -1,16 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Animated,
-  Dimensions,
   Alert,
   Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
 import { useTheme } from '../theme/themeContext';
 import { AnimatedButton } from '../components/AnimatedButton';
@@ -20,8 +18,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import QRCode from 'react-native-qrcode-svg';
-
-const { width } = Dimensions.get('window');
+import { buildCertificateHtml } from '../utils/certificateHtml';
 
 // ── Generate a unique cert ID from uid + date ──
 const makeCertId = (uid: string | null, earnedAt: string | undefined): string => {
@@ -46,341 +43,6 @@ const uriToBase64 = async (uri: string | null): Promise<string> => {
   }
 };
 
-// ── Build the landscape HTML certificate ──
-const buildCertificateHtml = async (params: {
-  name: string;
-  certId: string;
-  dateIssued: string;
-  xp: number;
-  level: number;
-  streak: number;
-  lessonsCompleted: number;
-  totalLessons: number;
-  perfectCount: number;
-  perfectPct: number;
-  badgeEmoji: string;
-  badgeLabel: string;
-  badgeColor: string;
-  badgeDescription: string;
-  photoBase64: string;
-  qrDataUrl: string;
-}): Promise<string> => {
-  const {
-    name, certId, dateIssued, xp, level, streak,
-    lessonsCompleted, totalLessons, perfectCount, perfectPct,
-    badgeEmoji, badgeLabel, badgeColor, badgeDescription,
-    photoBase64, qrDataUrl,
-  } = params;
-
-  const photoHtml = photoBase64
-    ? `<img src="${photoBase64}" class="photo" alt="Student Photo" />`
-    : `<div class="photo-placeholder">👤</div>`;
-
-  const qrHtml = qrDataUrl
-    ? `<img src="${qrDataUrl}" class="qr" alt="QR Code" />`
-    : '';
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<style>
-  @page { size: A4 landscape; margin: 0; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    width: 297mm;
-    height: 210mm;
-    background: #ffffff;
-    font-family: Georgia, 'Times New Roman', serif;
-    overflow: hidden;
-  }
-  .outer-border {
-    position: absolute;
-    inset: 6mm;
-    border: 3px solid #C9A84C;
-    border-radius: 4px;
-  }
-  .inner-border {
-    position: absolute;
-    inset: 10mm;
-    border: 1.5px solid #C9A84C;
-    border-radius: 3px;
-  }
-  /* Rwanda flag stripe top */
-  .flag-top, .flag-bottom {
-    position: absolute;
-    left: 10mm;
-    right: 10mm;
-    height: 5mm;
-    display: flex;
-    flex-direction: row;
-  }
-  .flag-top { top: 10mm; }
-  .flag-bottom { bottom: 10mm; }
-  .flag-blue  { flex: 1; background: #00A1DE; }
-  .flag-yellow{ flex: 0.5; background: #FAD201; }
-  .flag-green { flex: 1; background: #20603D; }
-  .flag-bottom .flag-green { order: -1; }
-  .flag-bottom .flag-yellow { order: 0; }
-  .flag-bottom .flag-blue { order: 1; }
-
-  /* Main content area */
-  .content {
-    position: absolute;
-    top: 17mm;
-    left: 14mm;
-    right: 14mm;
-    bottom: 17mm;
-    display: flex;
-    flex-direction: row;
-    gap: 10mm;
-  }
-
-  /* Left column */
-  .left-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-  }
-  .logo-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4mm;
-  }
-  .logo-emoji { font-size: 22pt; line-height: 1; }
-  .app-name {
-    font-size: 20pt;
-    font-weight: bold;
-    color: #20603D;
-    font-family: Arial, sans-serif;
-    letter-spacing: 2px;
-  }
-  .cert-title {
-    font-size: 18pt;
-    font-weight: bold;
-    color: #1a1a1a;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    line-height: 1.3;
-    margin-bottom: 3mm;
-  }
-  .sub-title {
-    font-size: 10pt;
-    color: #555;
-    font-style: italic;
-    margin-bottom: 3mm;
-  }
-  .divider {
-    width: 70%;
-    height: 1px;
-    background: linear-gradient(to right, transparent, #C9A84C, transparent);
-    margin: 2mm auto;
-  }
-  .student-name {
-    font-size: 22pt;
-    color: #20603D;
-    font-style: italic;
-    font-weight: bold;
-    margin: 2mm 0;
-  }
-  .has-completed {
-    font-size: 10pt;
-    color: #555;
-    margin-bottom: 2mm;
-  }
-  .course-name {
-    font-size: 16pt;
-    font-weight: bold;
-    color: #1a1a1a;
-    margin-bottom: 4mm;
-  }
-
-  /* Achievements */
-  .achievements {
-    width: 85%;
-    text-align: left;
-    margin-bottom: 4mm;
-  }
-  .ach-title {
-    font-size: 11pt;
-    font-weight: bold;
-    color: #20603D;
-    margin-bottom: 2mm;
-    font-family: Arial, sans-serif;
-  }
-  .ach-item {
-    font-size: 9pt;
-    color: #333;
-    line-height: 1.9;
-    font-family: Arial, sans-serif;
-  }
-  .ach-item::before { content: "• "; color: #C9A84C; font-weight: bold; }
-
-  /* Bottom row: signature + cert info + QR */
-  .bottom-row {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-    width: 100%;
-    margin-top: auto;
-    padding-top: 2mm;
-    border-top: 1px solid #e0e0e0;
-  }
-  .sig-block { flex: 1; }
-  .sig-name {
-    font-family: 'Brush Script MT', cursive, Georgia;
-    font-size: 16pt;
-    color: #1a1a1a;
-  }
-  .sig-role { font-size: 8pt; color: #555; font-family: Arial; }
-  .cert-meta { flex: 1.5; text-align: center; font-family: Arial; }
-  .cert-id { font-size: 8pt; color: #333; margin-bottom: 2px; }
-  .cert-date { font-size: 8pt; color: #333; }
-  .qr-block { text-align: center; }
-  .qr { width: 18mm; height: 18mm; }
-  .qr-label { font-size: 6pt; color: #888; font-family: Arial; margin-top: 2px; }
-
-  /* Right column — photo */
-  .right-col {
-    width: 45mm;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4mm;
-  }
-  .photo {
-    width: 36mm;
-    height: 36mm;
-    border-radius: 18mm;
-    object-fit: cover;
-    border: 3px solid #C9A84C;
-  }
-  .photo-placeholder {
-    width: 36mm;
-    height: 36mm;
-    border-radius: 18mm;
-    border: 3px solid #C9A84C;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24pt;
-    background: #f5f5f5;
-  }
-  .rwandan-sun {
-    font-size: 28pt;
-    color: #FAD201;
-  }
-  .official-seal {
-    width: 28mm;
-    height: 28mm;
-    border: 3px double #20603D;
-    border-radius: 14mm;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: #f9fff6;
-  }
-  .seal-text { font-size: 7pt; color: #20603D; font-weight: bold; font-family: Arial; text-align: center; line-height: 1.4; }
-
-  /* Badge tier */
-  .badge-row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    border: 2px solid #FFD700;
-    border-radius: 8px;
-    padding: 4px 8px;
-    margin-bottom: 4mm;
-    background: rgba(255,255,255,0.6);
-  }
-  .badge-emoji { font-size: 16pt; line-height: 1; }
-  .badge-label { font-size: 9pt; font-weight: bold; font-family: Arial; }
-  .badge-desc { font-size: 7pt; color: #555; font-family: Arial; }
-</style>
-</head>
-<body>
-  <div class="outer-border"></div>
-  <div class="inner-border"></div>
-  <div class="flag-top">
-    <div class="flag-blue"></div>
-    <div class="flag-yellow"></div>
-    <div class="flag-green"></div>
-  </div>
-  <div class="flag-bottom">
-    <div class="flag-green"></div>
-    <div class="flag-yellow"></div>
-    <div class="flag-blue"></div>
-  </div>
-
-  <div class="content">
-    <!-- LEFT: Main certificate text -->
-    <div class="left-col">
-      <div class="logo-row">
-        <span class="logo-emoji">🦍</span>
-        <span class="app-name">MENYA</span>
-      </div>
-
-      <div class="cert-title">Certificate of<br/>Language Proficiency</div>
-      <div class="divider"></div>
-      <div class="sub-title">This certifies that</div>
-      <div class="student-name">${name}</div>
-      <div class="has-completed">has successfully completed the full course of</div>
-      <div class="course-name">Kinyarwanda — ${lessonsCompleted}/${totalLessons} Lessons</div>
-
-      <div class="achievements">
-        <div class="ach-title">Achievements</div>
-        <div class="ach-item">Total XP Earned: ${xp} XP</div>
-        <div class="ach-item">Proficiency Level: Level ${level}</div>
-        <div class="ach-item">Longest Streak: ${streak} days</div>
-        <div class="ach-item">Lessons Completed: ${lessonsCompleted} of ${totalLessons}</div>
-        <div class="ach-item">Perfect Lessons: ${perfectCount}/${totalLessons} (${Math.round(perfectPct)}%)</div>
-      </div>
-
-      <!-- Badge tier -->
-      <div class="badge-row" style="border-color: ${badgeColor};">
-        <span class="badge-emoji">${badgeEmoji}</span>
-        <div>
-          <div class="badge-label" style="color: ${badgeColor};">${badgeLabel} CERTIFICATE</div>
-          <div class="badge-desc">${badgeDescription}</div>
-        </div>
-      </div>
-
-      <div class="bottom-row">
-        <div class="sig-block">
-          <div class="sig-name">Runi RW</div>
-          <div class="sig-role">Menya App • runirw.com</div>
-        </div>
-        <div class="cert-meta">
-          <div class="cert-id"><b>Certificate ID:</b> ${certId}</div>
-          <div class="cert-date"><b>Date Issued:</b> ${dateIssued}</div>
-        </div>
-        <div class="qr-block">
-          ${qrHtml}
-          <div class="qr-label">Scan to verify</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Photo + seal -->
-    <div class="right-col">
-      ${photoHtml}
-      <div class="official-seal">
-        <div class="seal-text">🇷🇼<br/>OFFICIAL<br/>MENYA<br/>CERTIFICATE</div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-};
-
 export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { user, progress, certificate } = useAppStore();
   const { colors } = useTheme();
@@ -399,12 +61,12 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
   // ── Badge tier based on % of lessons completed perfectly ──
   const perfectCount = progress.perfectLessons?.length ?? 0;
   const perfectPct = totalLessons > 0 ? (perfectCount / totalLessons) * 100 : 0;
-  type BadgeTier = { label: string; emoji: string; color: string; description: string };
+  type BadgeTier = { label: string; color: string; description: string };
   const getBadgeTier = (): BadgeTier => {
-    if (perfectPct >= 100) return { label: 'GOLD',   emoji: '🥇', color: '#FFD700', description: 'Perfect Score — All lessons mastered!' };
-    if (perfectPct >= 80)  return { label: 'SILVER', emoji: '🥈', color: '#C0C0C0', description: 'Excellent — 80%+ lessons mastered!' };
-    if (perfectPct >= 60)  return { label: 'BRONZE', emoji: '🥉', color: '#CD7F32', description: 'Good — 60%+ lessons mastered!' };
-    return { label: 'REPEAT', emoji: '🔁', color: '#E74C3C', description: 'Keep practising — repeat to earn a higher badge!' };
+    if (perfectPct >= 100) return { label: 'GOLD', color: '#D9A441', description: 'Perfect Score — All lessons mastered!' };
+    if (perfectPct >= 80)  return { label: 'SILVER', color: '#8A99A5', description: 'Excellent — 80%+ lessons mastered!' };
+    if (perfectPct >= 60)  return { label: 'BRONZE', color: '#A67C52', description: 'Good — 60%+ lessons mastered!' };
+    return { label: 'REPEAT', color: '#D64545', description: 'Keep practising — repeat to earn a higher badge!' };
   };
   const badge = getBadgeTier();
 
@@ -503,7 +165,6 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
         totalLessons,
         perfectCount,
         perfectPct,
-        badgeEmoji: badge.emoji,
         badgeLabel: badge.label,
         badgeColor: badge.color,
         badgeDescription: badge.description,
@@ -513,8 +174,8 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
 
       const { uri } = await Print.printToFileAsync({
         html,
-        width: 842,   // A4 landscape width in pts (297mm)
-        height: 595,  // A4 landscape height in pts (210mm)
+        width: 595,   // A4 portrait width in pts (210mm)
+        height: 842,  // A4 portrait height in pts (297mm)
         base64: false,
       });
 
@@ -571,349 +232,617 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
   // ── Locked screen if not all lessons done ──
   if (!allDone) {
     return (
-      <LinearGradient colors={['#0a1628', '#1a2a4a', '#0d3320']} style={styles.bg}>
-        <View style={styles.lockedContainer}>
-          <Text style={styles.lockEmoji}>🔒</Text>
-          <Text style={styles.lockTitle}>Impamyabumenyi Iragikingwa</Text>
-          <Text style={styles.lockMsg}>
-            Rangiza amasomo yose kugira ngo ubone impamyabumenyi.{'\n\n'}
-            Warangije: {completedLessons}/{totalLessons} amasomo
-          </Text>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${(completedLessons / totalLessons) * 100}%` as any }]} />
+      <View style={[styles.bg, { backgroundColor: colors.background }]}>
+        <ScrollView contentContainerStyle={styles.lockedContainer} showsVerticalScrollIndicator={false}>
+          <View style={[styles.lockedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.lockIconWrap, { backgroundColor: colors.primaryLight }]}>
+              <AppIcon name="lock" size={30} color={colors.primary} />
+            </View>
+            <Text style={[styles.lockTitle, { color: colors.text }]}>
+              Your certificate is almost here
+            </Text>
+            <Text style={[styles.lockMsg, { color: colors.textSecondary }]}>
+              Complete every lesson in the learning journey to unlock your Menya certificate.
+            </Text>
+            <View style={[styles.lockProgressTrack, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.lockProgressFill,
+                  {
+                    width: `${(completedLessons / totalLessons) * 100}%` as any,
+                    backgroundColor: colors.primary,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.lockProgressText, { color: colors.textMuted }]}>
+              {completedLessons} of {totalLessons} lessons complete
+            </Text>
+            <TouchableOpacity
+              style={[styles.lockButton, { backgroundColor: colors.primary }]}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.85}
+            >
+              <AppIcon name="arrowLeft" size={17} color="#FFFFFF" />
+              <Text style={styles.lockButtonText}>Back to your journey</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtnText}>← Subira Ahabanza</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        </ScrollView>
+      </View>
     );
   }
 
+  const badgeIcon =
+    badge.label === 'GOLD'
+      ? 'trophy'
+      : badge.label === 'SILVER'
+        ? 'medal'
+        : badge.label === 'BRONZE'
+          ? 'award'
+          : 'refresh';
+  const initial = (user.displayName || 'Umunyeshuri').trim().charAt(0).toUpperCase();
+  const certificateStats = [
+    { label: 'TOTAL XP', value: progress.xp.toLocaleString() },
+    { label: 'PERFECT', value: `${perfectCount}` },
+    { label: 'DAY STREAK', value: `${progress.streak}` },
+    { label: 'LEVEL', value: `${progress.level}` },
+  ];
+
   return (
-    <LinearGradient colors={['#0a1628', '#1a2a4a', '#0d3320']} style={styles.bg}>
+    <View style={[styles.bg, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-
-        <Text style={styles.pageTitle}>🏆 Congratulations!</Text>
-        <Text style={styles.pageSubtitle}>Warangije Isomo Ryose! 🇷🇼</Text>
-
-        {/* Badge tier banner */}
-        <View style={[styles.badgeBanner, { borderColor: badge.color, backgroundColor: badge.color + '22' }]}>
-          <Text style={styles.badgeBannerEmoji}>{badge.emoji}</Text>
-          <View>
-            <Text style={[styles.badgeBannerLabel, { color: badge.color }]}>{badge.label} CERTIFICATE</Text>
-            <Text style={styles.badgeBannerDesc}>{badge.description}</Text>
-            {badge.label === 'REPEAT' && (
-              <Text style={styles.badgeBannerHint}>
-                Complete lessons perfectly to earn Bronze or higher 🎯
-              </Text>
-            )}
+        <View style={styles.pageHeader}>
+          <View style={[styles.pageIcon, { backgroundColor: colors.primaryLight }]}>
+            <AppIcon name="award" size={21} color={colors.primary} />
+          </View>
+          <View style={styles.pageHeaderCopy}>
+            <Text style={[styles.pageTitle, { color: colors.text }]}>Your certificate</Text>
+            <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>
+              A record of your Kinyarwanda journey.
+            </Text>
           </View>
         </View>
 
-        {/* Certificate preview card */}
-        <Animated.View style={[styles.certPreview, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
-          {/* Outer gold border */}
-          <View style={styles.outerBorder}>
-            <View style={styles.innerBorder}>
-              {/* Rwanda flag stripe */}
-              <View style={styles.flagStripe}>
-                <View style={[styles.stripe, { backgroundColor: '#00A1DE' }]} />
-                <View style={[styles.stripe, { backgroundColor: '#FAD201', flex: 0.5 }]} />
-                <View style={[styles.stripe, { backgroundColor: '#20603D' }]} />
+        <View
+          style={[
+            styles.badgeBanner,
+            { borderColor: badge.color + '55', backgroundColor: badge.color + '10' },
+          ]}
+        >
+          <View style={[styles.badgeIcon, { backgroundColor: badge.color + '1C' }]}>
+            <AppIcon name={badgeIcon} size={22} color={badge.color} />
+          </View>
+          <View style={styles.badgeCopy}>
+            <Text style={[styles.badgeBannerLabel, { color: badge.color }]}>
+              {badge.label} CERTIFICATE
+            </Text>
+            <Text style={[styles.badgeBannerDesc, { color: colors.textSecondary }]}>
+              {badge.description}
+            </Text>
+          </View>
+        </View>
+
+        <Animated.View
+          style={[
+            styles.certPreview,
+            { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
+          ]}
+        >
+          <View style={styles.accentRow}>
+            <View style={[styles.accentBar, { backgroundColor: '#2B6CB0' }]} />
+            <View style={[styles.accentBar, styles.accentGold, { backgroundColor: '#D9A441' }]} />
+            <View style={[styles.accentBar, { backgroundColor: '#2F9E6E' }]} />
+          </View>
+
+          <View style={styles.paperInner}>
+            <View style={styles.brandRow}>
+              <View style={styles.brandMark}>
+                <AppIcon name="graduationCap" size={15} color="#FFFFFF" />
               </View>
+              <Text style={styles.brandName}>MENYA</Text>
+            </View>
+            <Text style={styles.paperEyebrow}>KINYARWANDA LANGUAGE PROGRAM</Text>
+            <Text style={styles.paperTitle}>CERTIFICATE OF{'\n'}COMPLETION</Text>
+            <View style={styles.paperRule} />
+            <Text style={styles.paperCertify}>This certifies that</Text>
+            <Text style={styles.paperName}>{user.displayName || 'Umunyeshuri'}</Text>
+            <Text style={styles.paperStatement}>
+              has successfully completed the Menya Kinyarwanda course, demonstrating
+              commitment to learning the language and culture of Rwanda.
+            </Text>
+            <Text style={styles.paperCourse}>
+              Kinyarwanda · {completedLessons}/{totalLessons} lessons
+            </Text>
 
-              <View style={styles.certBody}>
-                {/* Left: text */}
-                <View style={styles.certLeft}>
-                  {/* Logo row */}
-                  <View style={styles.logoRow}>
-                    <Text style={styles.logoEmoji}>🦍</Text>
-                    <Text style={styles.appNameText}>MENYA</Text>
-                  </View>
-
-                  <Text style={styles.certTitle}>CERTIFICATE OF{'\n'}LANGUAGE PROFICIENCY</Text>
-                  <View style={styles.goldDivider} />
-                  <Text style={styles.certSub}>This certifies that</Text>
-                  <Text style={styles.certName}>{user.displayName || 'Umunyeshuri'}</Text>
-                  <Text style={styles.certSub}>has successfully completed the full course of</Text>
-                  <Text style={styles.certCourse}>Kinyarwanda</Text>
-
-                  <View style={styles.achBox}>
-                    <Text style={styles.achTitle}>Achievements</Text>
-                    <Text style={styles.achItem}>• Total XP Earned: {progress.xp} XP</Text>
-                    <Text style={styles.achItem}>• Proficiency Level: Level {progress.level}</Text>
-                    <Text style={styles.achItem}>• Lessons Completed: {completedLessons}/{totalLessons}</Text>
-                    <Text style={styles.achItem}>• Perfect Lessons: {perfectCount}/{totalLessons} ({Math.round(perfectPct)}%)</Text>
-                    <Text style={styles.achItem}>• Streak: {progress.streak} days</Text>
-                    {/* Badge tier */}
-                    <View style={[styles.badgeRow, { borderColor: badge.color }]}>
-                      <Text style={styles.badgeEmoji}>{badge.emoji}</Text>
-                      <View>
-                        <Text style={[styles.badgeLabel, { color: badge.color }]}>{badge.label} CERTIFICATE</Text>
-                        <Text style={styles.badgeDesc}>{badge.description}</Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Bottom row */}
-                  <View style={styles.certFooter}>
-                    <View style={styles.footerLeft}>
-                      <Text style={styles.sigText}>Runi RW</Text>
-                      <Text style={styles.sigRole}>Menya App • runirw.com</Text>
-                      <Text style={styles.certIdText}>ID: {certId}</Text>
-                      <Text style={styles.certIdText}>{today}</Text>
-                    </View>
-                    <View style={styles.qrWrapper}>
-                      <QRCode
-                        value={qrValue}
-                        size={64}
-                        getRef={(ref) => setQrSvgRef(ref)}
-                        backgroundColor="white"
-                        color="#000000"
-                      />
-                      <Text style={styles.qrLabel}>Scan to verify</Text>
-                    </View>
-                  </View>
+            <View style={styles.statsRow}>
+              {certificateStats.map((stat) => (
+                <View key={stat.label} style={styles.statItem}>
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statLabel}>{stat.label}</Text>
                 </View>
+              ))}
+            </View>
 
-                {/* Right: photo + seal */}
-                <View style={styles.certRight}>
-                  {user.photoUri ? (
-                    <Image source={{ uri: user.photoUri }} style={styles.photoCircle} />
-                  ) : (
-                    <View style={[styles.photoCircle, styles.photoPlaceholder]}>
-                      <Text style={{ fontSize: 28 }}>👤</Text>
-                    </View>
-                  )}
-                  <View style={styles.officialSeal}>
-                    <Text style={styles.sealEmoji}>🇷🇼</Text>
-                    <Text style={styles.sealText}>OFFICIAL{'\n'}MENYA</Text>
-                  </View>
+            <Text style={[styles.tierLine, { color: badge.color }]}>
+              {badge.label} CERTIFICATE{' '}
+              <Text style={styles.tierDescription}>· {badge.description}</Text>
+            </Text>
+
+            <View style={styles.sealWrap}>
+              <View style={[styles.seal, { borderColor: badge.color }]}>
+                <View style={[styles.sealInner, { borderColor: badge.color + '66' }]}>
+                  <AppIcon name={badgeIcon} size={20} color={badge.color} />
+                  <Text style={[styles.sealTier, { color: badge.color }]}>{badge.label}</Text>
+                  <Text style={styles.sealLabel}>OFFICIAL MENYA</Text>
                 </View>
               </View>
+            </View>
 
-              {/* Bottom flag stripe */}
-              <View style={styles.flagStripe}>
-                <View style={[styles.stripe, { backgroundColor: '#20603D' }]} />
-                <View style={[styles.stripe, { backgroundColor: '#FAD201', flex: 0.5 }]} />
-                <View style={[styles.stripe, { backgroundColor: '#00A1DE' }]} />
+            <View style={styles.paperDivider} />
+
+            <View style={styles.bottomRow}>
+              <View style={styles.photoBlock}>
+                {user.photoUri ? (
+                  <Image source={{ uri: user.photoUri }} style={styles.paperPhoto} />
+                ) : (
+                  <View style={styles.paperPhotoPlaceholder}>
+                    <Text style={styles.paperPhotoInitial}>{initial}</Text>
+                  </View>
+                )}
+                <Text style={styles.photoCaption}>STUDENT</Text>
               </View>
+
+              <View style={styles.signatureBlock}>
+                <Text style={styles.signatureName}>Runi RW</Text>
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureRole}>Menya App · runirw.com</Text>
+              </View>
+
+              <View style={styles.qrBlock}>
+                <QRCode
+                  value={qrValue}
+                  size={52}
+                  getRef={(ref) => setQrSvgRef(ref)}
+                  backgroundColor="#FBF8F1"
+                  color="#14212B"
+                />
+                <Text style={styles.qrLabel}>SCAN TO VERIFY</Text>
+              </View>
+            </View>
+
+            <View style={styles.paperMetaRow}>
+              <Text style={styles.paperMeta}>ID: {certId}</Text>
+              <Text style={styles.paperMeta}>{today}</Text>
             </View>
           </View>
         </Animated.View>
 
-        <Text style={styles.pdfNote}>
-          📄 PDF itarengwa · Landscape A4 · Scannable QR
-        </Text>
-
-        {/* Action buttons */}
-        <AnimatedButton
-          style={[styles.actionBtn, styles.saveBtnColor, saving && styles.btnDisabled]}
-          onPress={handleSave}
-        >
-          <AppIcon name="document" size={20} color="#FFFFFF" />
-          <Text style={styles.actionBtnText}>
-            {saving ? 'Birakora...' : 'Save PDF to Device'}
+        <View style={styles.pdfNoteRow}>
+          <AppIcon name="fileText" size={13} color={colors.textMuted} />
+          <Text style={[styles.pdfNote, { color: colors.textMuted }]}>
+            A4 portrait · print-ready PDF · scannable verification
           </Text>
-        </AnimatedButton>
-
-        <AnimatedButton
-          style={[styles.actionBtn, styles.shareBtnColor, sharing && styles.btnDisabled]}
-          onPress={handleShare}
-        >
-          <AppIcon name="share" size={20} color="#1A1A1A" />
-          <Text style={[styles.actionBtnText, { color: '#1A1A1A' }]}>
-            {sharing ? 'Birakora...' : 'Share PDF'}
-          </Text>
-        </AnimatedButton>
-
-        <AnimatedButton
-          style={[styles.actionBtn, styles.homeBtnColor]}
-          onPress={() => navigation.navigate('MainTabs')}
-        >
-          <AppIcon name="home" size={20} color="#FFFFFF" />
-          <Text style={styles.actionBtnText}>Back to Home</Text>
-        </AnimatedButton>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerTxt}>Powered by <Text style={{ fontWeight: '800' }}>Runi RW</Text> • runirw.com</Text>
         </View>
+
+        <View style={styles.actions}>
+          <AnimatedButton
+            style={[styles.actionBtn, { backgroundColor: colors.primary }, saving && styles.btnDisabled]}
+            onPress={handleSave}
+          >
+            <AppIcon name="documentDownload" size={18} color="#FFFFFF" />
+            <Text style={styles.actionBtnText}>
+              {saving ? 'Preparing…' : 'Save PDF'}
+            </Text>
+          </AnimatedButton>
+
+          <AnimatedButton
+            style={[
+              styles.actionBtn,
+              styles.secondaryAction,
+              { backgroundColor: colors.card, borderColor: colors.border },
+              sharing && styles.btnDisabled,
+            ]}
+            onPress={handleShare}
+          >
+            <AppIcon name="share" size={18} color={colors.text} />
+            <Text style={[styles.actionBtnText, { color: colors.text }]}>
+              {sharing ? 'Preparing…' : 'Share PDF'}
+            </Text>
+          </AnimatedButton>
+
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => navigation.navigate('MainTabs')}
+            activeOpacity={0.7}
+          >
+            <AppIcon name="arrowLeft" size={15} color={colors.textSecondary} />
+            <Text style={[styles.backLinkText, { color: colors.textSecondary }]}>
+              Back to Home
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.footerTxt, { color: colors.textMuted }]}>
+          Menya · Learn Kinyarwanda
+        </Text>
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 };
 
+
 const styles = StyleSheet.create({
   bg: { flex: 1 },
-  container: { flexGrow: 1, alignItems: 'center', paddingTop: 60, paddingHorizontal: 16 },
-
-  // Locked screen
-  lockedContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  lockEmoji: { fontSize: 60, marginBottom: 16 },
-  lockTitle: { fontSize: 22, fontWeight: '900', color: '#FFD700', textAlign: 'center', marginBottom: 12 },
-  lockMsg: { fontSize: 15, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 24, marginBottom: 24 },
-  progressBarBg: { width: '100%', height: 12, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6, overflow: 'hidden', marginBottom: 28 },
-  progressBarFill: { height: '100%', backgroundColor: '#20603D', borderRadius: 6 },
-  backBtn: { backgroundColor: '#20603D', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12 },
-  backBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
-
-  // Page header
-  pageTitle: { fontSize: 30, fontWeight: '900', color: '#FFD700', textAlign: 'center' },
-  pageSubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.7)', marginBottom: 12, fontStyle: 'italic' },
-
-  badgeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 2,
-    borderRadius: 14,
+  container: {
+    paddingTop: 54,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
+    paddingBottom: 36,
+    alignItems: 'center',
+  },
+
+  // Locked state
+  lockedContainer: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  lockedCard: {
     width: '100%',
-  },
-  badgeBannerEmoji: { fontSize: 36 },
-  badgeBannerLabel: { fontSize: 16, fontWeight: '900', letterSpacing: 1 },
-  badgeBannerDesc: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  badgeBannerHint: { fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 4, fontStyle: 'italic' },
-
-  // Certificate card — portrait preview of the landscape PDF
-  certPreview: {
-    width: width - 24,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 4,
-    elevation: 12,
-    shadowColor: '#C9A84C',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    marginBottom: 12,
-  },
-  outerBorder: {
-    margin: 4,
-    borderWidth: 2.5,
-    borderColor: '#C9A84C',
-    borderRadius: 3,
-  },
-  innerBorder: {
-    margin: 4,
+    maxWidth: 430,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#C9A84C',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  flagStripe: { flexDirection: 'row', height: 8 },
-  stripe: { flex: 1 },
-
-  certBody: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-  },
-  certLeft: { flex: 1 },
-  certRight: {
-    width: 90,
+    padding: 28,
     alignItems: 'center',
-    justifyContent: 'space-around',
-    gap: 12,
   },
-
-  // Logo
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  logoEmoji: { fontSize: 18 },
-  appNameText: { fontSize: 16, fontWeight: '900', color: '#20603D', letterSpacing: 2 },
-
-  certTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#1a1a1a',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    lineHeight: 18,
-    marginBottom: 6,
-  },
-  goldDivider: { height: 1.5, backgroundColor: '#C9A84C', marginVertical: 6, width: '80%' },
-  certSub: { fontSize: 10, color: '#666', fontStyle: 'italic', marginBottom: 3 },
-  certName: { fontSize: 18, fontWeight: '900', color: '#20603D', fontStyle: 'italic', marginVertical: 4 },
-  certCourse: { fontSize: 13, fontWeight: '700', color: '#1a1a1a', marginBottom: 10 },
-
-  achBox: { marginBottom: 10 },
-  achTitle: { fontSize: 10, fontWeight: '900', color: '#20603D', marginBottom: 4 },
-  achItem: { fontSize: 9, color: '#444', lineHeight: 16 },
-
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    gap: 6,
-    marginTop: 6,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-  },
-  badgeEmoji: { fontSize: 18 },
-  badgeLabel: { fontSize: 9, fontWeight: '900' },
-  badgeDesc: { fontSize: 8, color: '#555', marginTop: 1 },
-
-  certFooter: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#E0E0E0', paddingTop: 8 },
-  footerLeft: { flex: 1 },
-  sigText: { fontSize: 13, fontStyle: 'italic', color: '#1a1a1a', fontWeight: '700' },
-  sigRole: { fontSize: 8, color: '#666' },
-  certIdText: { fontSize: 8, color: '#555', marginTop: 2 },
-
-  qrWrapper: { alignItems: 'center' },
-  qrLabel: { fontSize: 7, color: '#888', marginTop: 3 },
-
-  photoCircle: {
+  lockIconWrap: {
     width: 68,
     height: 68,
     borderRadius: 34,
-    borderWidth: 2.5,
-    borderColor: '#C9A84C',
-  },
-  photoPlaceholder: {
-    backgroundColor: '#f5f5f5',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 18,
   },
-  officialSeal: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: '#20603D',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f9fff6',
+  lockTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: -0.3,
   },
-  sealEmoji: { fontSize: 14 },
-  sealText: { fontSize: 7, color: '#20603D', fontWeight: '800', textAlign: 'center', lineHeight: 11 },
-
-  pdfNote: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 20, textAlign: 'center' },
-
-  // Buttons
-  actionBtn: {
+  lockMsg: {
+    fontSize: 13.5,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 22,
+  },
+  lockProgressTrack: {
+    width: '100%',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  lockProgressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  lockProgressText: {
+    fontSize: 11.5,
+    marginTop: 8,
+    marginBottom: 22,
+  },
+  lockButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    gap: 7,
+    borderRadius: 24,
     paddingVertical: 14,
-    paddingHorizontal: 28,
-    gap: 8,
-    marginBottom: 12,
-    width: width - 32,
+    paddingHorizontal: 22,
+    width: '100%',
   },
-  saveBtnColor: { backgroundColor: '#00A1DE' },
-  shareBtnColor: { backgroundColor: '#FFD700' },
-  homeBtnColor: { backgroundColor: '#20603D' },
-  btnDisabled: { opacity: 0.6 },
-  actionBtnText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
+  lockButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 
-  footer: { marginTop: 16, alignItems: 'center' },
-  footerTxt: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  // Page header
+  pageHeader: {
+    width: '100%',
+    maxWidth: 440,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    marginBottom: 14,
+  },
+  pageIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageHeaderCopy: { flex: 1 },
+  pageTitle: { fontSize: 24, fontWeight: '700', letterSpacing: -0.4 },
+  pageSubtitle: { fontSize: 12.5, marginTop: 2 },
+
+  // Badge summary
+  badgeBanner: {
+    width: '100%',
+    maxWidth: 440,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 14,
+  },
+  badgeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeCopy: { flex: 1 },
+  badgeBannerLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  badgeBannerDesc: { fontSize: 11, lineHeight: 15, marginTop: 2 },
+
+  // Certificate paper
+  certPreview: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#FBF8F1',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#D9A441',
+    overflow: 'hidden',
+    shadowColor: '#14212B',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.14,
+    shadowRadius: 22,
+    elevation: 7,
+    marginBottom: 14,
+  },
+  accentRow: { flexDirection: 'row', height: 5 },
+  accentBar: { flex: 1 },
+  accentGold: { flex: 0.55 },
+  paperInner: { padding: 18 },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  brandMark: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#0B6E84',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandName: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 2.6,
+    color: '#0B6E84',
+  },
+  paperEyebrow: {
+    fontSize: 7.5,
+    fontWeight: '600',
+    letterSpacing: 1.6,
+    color: '#83919D',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  paperTitle: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: '#14212B',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  paperRule: {
+    width: 52,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#D9A441',
+    alignSelf: 'center',
+    marginVertical: 12,
+  },
+  paperCertify: {
+    fontSize: 10,
+    color: '#83919D',
+    textAlign: 'center',
+  },
+  paperName: {
+    fontSize: 26,
+    lineHeight: 31,
+    fontWeight: '700',
+    color: '#0B6E84',
+    textAlign: 'center',
+    marginTop: 3,
+    marginBottom: 6,
+  },
+  paperStatement: {
+    fontSize: 10.5,
+    lineHeight: 16,
+    color: '#536471',
+    textAlign: 'center',
+    maxWidth: 300,
+    alignSelf: 'center',
+  },
+  paperCourse: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#14212B',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
+    borderColor: '#E3DCCB',
+    marginTop: 14,
+    paddingVertical: 10,
+  },
+  statItem: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
+  statValue: { fontSize: 14, fontWeight: '700', color: '#0B6E84' },
+  statLabel: {
+    fontSize: 6.5,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    color: '#83919D',
+    textAlign: 'center',
+    marginTop: 3,
+  },
+  tierLine: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+    marginTop: 11,
+    lineHeight: 13,
+  },
+  tierDescription: { color: '#536471', fontWeight: '500' },
+  sealWrap: { alignItems: 'center', marginTop: 12 },
+  seal: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    borderWidth: 2,
+    backgroundColor: '#FFFDF8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sealInner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1,
+  },
+  sealTier: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.8 },
+  sealLabel: { fontSize: 5.5, letterSpacing: 0.8, color: '#83919D' },
+  paperDivider: {
+    height: 0.5,
+    backgroundColor: '#E3DCCB',
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  photoBlock: { width: 64, alignItems: 'center' },
+  paperPhoto: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: '#0B6E84',
+  },
+  paperPhotoPlaceholder: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: '#0B6E84',
+    backgroundColor: '#F2F7F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paperPhotoInitial: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0B6E84',
+  },
+  photoCaption: {
+    fontSize: 5.5,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    color: '#83919D',
+    marginTop: 4,
+  },
+  signatureBlock: { flex: 1, alignItems: 'center', paddingHorizontal: 8 },
+  signatureName: {
+    fontSize: 15,
+    fontWeight: '700',
+    fontStyle: 'italic',
+    color: '#14212B',
+  },
+  signatureLine: {
+    width: '86%',
+    height: 0.5,
+    backgroundColor: '#83919D',
+    marginTop: 4,
+    marginBottom: 3,
+  },
+  signatureRole: {
+    fontSize: 6,
+    color: '#536471',
+    textAlign: 'center',
+  },
+  qrBlock: { width: 64, alignItems: 'center' },
+  qrLabel: {
+    fontSize: 5.5,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    color: '#83919D',
+    marginTop: 3,
+  },
+  paperMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  paperMeta: { fontSize: 6.5, color: '#83919D' },
+
+  pdfNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 16,
+  },
+  pdfNote: { fontSize: 11, textAlign: 'center' },
+
+  // Actions
+  actions: {
+    width: '100%',
+    maxWidth: 440,
+    gap: 10,
+  },
+  actionBtn: {
+    height: 52,
+    borderRadius: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+  },
+  secondaryAction: { borderWidth: 1 },
+  btnDisabled: { opacity: 0.6 },
+  actionBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 10,
+  },
+  backLinkText: { fontSize: 12.5, fontWeight: '600' },
+  footerTxt: { fontSize: 10.5, marginTop: 12 },
 });

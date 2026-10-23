@@ -2,42 +2,69 @@ import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  useFonts,
+  GoogleSans_400Regular,
+  GoogleSans_400Regular_Italic,
+  GoogleSans_500Medium,
+  GoogleSans_500Medium_Italic,
+  GoogleSans_600SemiBold,
+  GoogleSans_600SemiBold_Italic,
+  GoogleSans_700Bold,
+  GoogleSans_700Bold_Italic,
+} from '@expo-google-fonts/google-sans';
 import { ThemeProvider, useTheme } from './src/theme/themeContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAppStore } from './src/store/useAppStore';
+import { useHeartRegen } from './src/hooks/useHeartRegen';
+import { useAppUpdate } from './src/hooks/useAppUpdate';
+import { UpdateModal } from './src/components/UpdateModal';
+import { setupNotificationHandler } from './src/utils/notifications';
 import { PermissionsScreen, shouldShowPermissions } from './src/screens/PermissionsScreen';
 
 const AppContent = () => {
+  const [fontsLoaded, fontError] = useFonts({
+    GoogleSans_400Regular,
+    GoogleSans_400Regular_Italic,
+    GoogleSans_500Medium,
+    GoogleSans_500Medium_Italic,
+    GoogleSans_600SemiBold,
+    GoogleSans_600SemiBold_Italic,
+    GoogleSans_700Bold,
+    GoogleSans_700Bold_Italic,
+  });
   const loadFromStorage = useAppStore((s) => s.loadFromStorage);
+  const isLoggedIn = useAppStore((s) => s.user.isLoggedIn);
+  const onboardingCompleted = useAppStore((s) => s.user.onboardingCompleted);
   const { isDark } = useTheme();
-  const [showPermissions, setShowPermissions] = useState<boolean | null>(null);
+  const [needsPermissions, setNeedsPermissions] = useState<boolean | null>(null);
+  const { update, openUpdate, dismissUpdate } = useAppUpdate();
+
+  useHeartRegen();
 
   useEffect(() => {
+    setupNotificationHandler();
     const init = async () => {
       await loadFromStorage();
-      const needsPermissions = await shouldShowPermissions();
-      setShowPermissions(needsPermissions);
+      setNeedsPermissions(await shouldShowPermissions());
     };
     init();
   }, []);
 
-  // Still loading
-  if (showPermissions === null) return null;
+  // Wait for the font set and stored session before showing anything.
+  if ((!fontsLoaded && !fontError) || needsPermissions === null) return null;
 
-  // First launch — show permissions screen
-  if (showPermissions) {
-    return (
-      <>
-        <StatusBar style="light" />
-        <PermissionsScreen onDone={() => setShowPermissions(false)} />
-      </>
-    );
-  }
+  const permissionsRequired = isLoggedIn && onboardingCompleted && needsPermissions;
 
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <AppNavigator />
+      {permissionsRequired ? (
+        <PermissionsScreen onDone={() => setNeedsPermissions(false)} />
+      ) : (
+        <AppNavigator />
+      )}
+      <UpdateModal update={update} onUpdate={openUpdate} onLater={dismissUpdate} />
     </>
   );
 };

@@ -12,7 +12,20 @@ import {
   updateCertificateInFirestore,
   updateUserProfileInFirestore,
   updateLeaderboardEntry,
+  updateHeartsInFirestore,
 } from '../firebase/syncService';
+
+export const MAX_HEARTS = 5;
+// Duolingo's refill interval is server-driven; 30 minutes keeps the loop
+// practical for a 27-lesson course while preserving the same mechanic.
+export const HEART_REFILL_MS = 30 * 60 * 1000;
+
+export const formatHeartCountdown = (ms: number): string => {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+};
 
 export type AvatarId =
   | 'gorilla'
@@ -39,6 +52,7 @@ export interface UserProgress {
   streak: number;
   lastActiveDate: string | null;
   hearts: number;
+  nextHeartAt: number | null; // epoch ms of the next scheduled heart
   level: number;
 }
 
@@ -50,6 +64,8 @@ export interface UserProfile {
   avatar: AvatarId;
   photoUri: string | null;   // local URI of the user's profile photo
   isLoggedIn: boolean;
+  nativeLanguage: string | null;
+  onboardingCompleted: boolean;
 }
 
 interface AppState {
@@ -62,11 +78,13 @@ interface AppState {
   completeLesson: (lessonId: string, xpEarned: number, isPerfect?: boolean) => void;
   addXP: (amount: number) => void;
   loseHeart: () => void;
-  resetHearts: () => void;
+  earnHeart: () => void;
+  applyHeartRegen: () => void;
   updateStreak: () => void;
   setAvatar: (avatar: AvatarId) => void;
   updateDisplayName: (name: string) => void;
   setPhotoUri: (uri: string | null) => void;
+  completeOnboarding: (nativeLanguage: string | null) => void;
   earnCertificate: () => void;
   loadFromStorage: () => Promise<void>;
   saveToStorage: () => Promise<void>;
@@ -79,7 +97,8 @@ export const defaultProgress: UserProgress = {
   xp: 0,
   streak: 0,
   lastActiveDate: null,
-  hearts: 5,
+  hearts: MAX_HEARTS,
+  nextHeartAt: null,
   level: 1,
 };
 
@@ -91,6 +110,8 @@ const defaultUser: UserProfile = {
   avatar: 'gorilla',
   photoUri: null,
   isLoggedIn: false,
+  nativeLanguage: null,
+  onboardingCompleted: false,
 };
 
 // XP thresholds per level (cumulative total XP needed to reach that level)
@@ -144,6 +165,35 @@ export const getStreakMultiplier = (streak: number): number => {
   if (streak >= 7) return 1.25;
   if (streak >= 3) return 1.1;
   return 1.0;
+};
+
+const applyRegen = (progress: UserProgress): UserProgress => {
+  if (progress.hearts >= MAX_HEARTS) {
+    return progress.nextHeartAt === null ? progress : { ...progress, nextHeartAt: null };
+  }
+
+  const now = Date.now();
+  if (!progress.nextHeartAt) {
+    return { ...progress, nextHeartAt: now + HEART_REFILL_MS };
+  }
+
+  let hearts = progress.hearts;
+  let nextHeartAt = progress.nextHeartAt;
+  while (hearts < MAX_HEARTS && now >= nextHeartAt) {
+    hearts += 1;
+    nextHeartAt += HEART_REFILL_MS;
+  }
+
+  if (hearts >= MAX_HEARTS) {
+    return { ...progress, hearts: MAX_HEARTS, nextHeartAt: null };
+  }
+  return hearts === progress.hearts ? progress : { ...progress, hearts, nextHeartAt };
+};
+
+const syncHeartsToCloud = (user: UserProfile, progress: UserProgress) => {
+  if (user.uid && user.isLoggedIn) {
+    updateHeartsInFirestore(user.uid, progress.hearts, progress.nextHeartAt);
+  }
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -246,15 +296,44 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   loseHeart: () => {
-    set((state) => ({
-      progress: { ...state.progress, hearts: Math.max(0, state.progress.hearts - 1) },
-    }));
+    const current = applyRegen(get().progress);
+    if (current.hearts <= 0) return;
+
+    const now = Date.now();
+    const hearts = current.hearts - 1;
+    const nextHeartAt = current.hearts >= MAX_HEARTS
+      ? now + HEART_REFILL_MS
+      : current.nextHeartAt ?? now + HEART_REFILL_MS;
+
+    set({
+      progress: { ...current, hearts, nextHeartAt },
+    });
     get().saveToStorage();
+    syncHeartsToCloud(get().user, get().progress);
   },
 
-  resetHearts: () => {
-    set((state) => ({ progress: { ...state.progress, hearts: 5 } }));
+  earnHeart: () => {
+    const current = applyRegen(get().progress);
+    const hearts = Math.min(MAX_HEARTS, current.hearts + 1);
+    set({
+      progress: {
+        ...current,
+        hearts,
+        nextHeartAt: hearts >= MAX_HEARTS ? null : current.nextHeartAt,
+      },
+    });
     get().saveToStorage();
+    syncHeartsToCloud(get().user, get().progress);
+  },
+
+  applyHeartRegen: () => {
+    const current = get().progress;
+    const updated = applyRegen(current);
+    if (updated === current) return;
+
+    set({ progress: updated });
+    get().saveToStorage();
+    syncHeartsToCloud(get().user, updated);
   },
 
   updateStreak: () => {
@@ -310,6 +389,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().saveToStorage();
   },
 
+  completeOnboarding: (nativeLanguage) => {
+    set((state) => ({
+      user: {
+        ...state.user,
+        nativeLanguage,
+        onboardingCompleted: true,
+      },
+    }));
+    get().saveToStorage();
+
+    if (get().user.uid && get().user.isLoggedIn) {
+      updateUserProfileInFirestore(get().user.uid!, {
+        nativeLanguage,
+        onboardingCompleted: true,
+      });
+    }
+  },
+
   earnCertificate: () => {
     set({ certificate: { earned: true, earnedAt: new Date().toISOString() } });
     get().saveToStorage();
@@ -350,8 +447,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           ...parsed,
           level: getLevel(parsed.xp ?? 0),
           perfectLessons: parsed.perfectLessons ?? [],
+          nextHeartAt: parsed.nextHeartAt ?? null,
         };
-        set({ progress: recalculated });
+        set({ progress: applyRegen(recalculated) });
       }
       if (certStr) {
         const parsed = JSON.parse(certStr);
@@ -391,11 +489,21 @@ export const useAppStore = create<AppState>((set, get) => ({
         // The ONLY exception is a brand-new registration (no Firestore record exists yet,
         // so firestoreData would be null above — this branch only runs when cloud data EXISTS).
         // Merge: always take the higher of local vs cloud values so no progress is lost.
+        // A running refill timer means this device recently spent hearts;
+        // don't let stale cloud data silently restore them.
+        const keepLocalHearts = progress.hearts < MAX_HEARTS && progress.nextHeartAt != null;
         const mergedProgress = {
           ...progress,
           xp: Math.max(progress.xp, firestoreData.progress.xp),
           streak: Math.max(progress.streak, firestoreData.progress.streak),
-          hearts: Math.max(progress.hearts, firestoreData.progress.hearts),
+          hearts: keepLocalHearts
+            ? progress.hearts
+            : Math.max(progress.hearts, firestoreData.progress.hearts),
+          nextHeartAt: keepLocalHearts
+            ? progress.nextHeartAt
+            : firestoreData.progress.hearts > progress.hearts
+              ? firestoreData.progress.nextHeartAt ?? null
+              : progress.nextHeartAt,
           completedLessons: [
             ...new Set([...progress.completedLessons, ...firestoreData.progress.completedLessons]),
           ],
@@ -404,6 +512,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           ],
         };
         mergedProgress.level = getLevel(mergedProgress.xp);
+        if (mergedProgress.hearts >= MAX_HEARTS) mergedProgress.nextHeartAt = null;
 
         set({
           progress: mergedProgress,
@@ -427,11 +536,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (data) {
           // Update local state with Firestore data if it's newer
           set((state) => ({
-            progress: {
+            progress: applyRegen({
               ...state.progress,
               ...data.progress,
+              nextHeartAt: data.progress.nextHeartAt ?? state.progress.nextHeartAt ?? null,
               level: getLevel(data.progress.xp),
-            },
+            }),
             certificate: data.certificate || state.certificate,
           }));
         }

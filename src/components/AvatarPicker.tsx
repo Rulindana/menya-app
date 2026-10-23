@@ -1,42 +1,72 @@
 import React from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Modal,
   ScrollView,
 } from 'react-native';
+import { Text } from './ui/AppText';
 import { AppIcon } from './ui/AppIcon';
-import { Colors, Radius, Shadow } from '../theme/colors';
+import { Colors, Radius } from '../theme/colors';
 import { AvatarId, useAppStore } from '../store/useAppStore';
 
-export const AVATARS: { id: AvatarId; emoji: string; label: string; unlockXP: number; description: string }[] = [
-  // Free avatars
-  { id: 'gorilla', emoji: '🦍', label: 'Gorilla', unlockXP: 0, description: 'Default avatar' },
-  { id: 'flag', emoji: '🇷🇼', label: 'Rwanda Flag', unlockXP: 0, description: 'Pride of Rwanda' },
-  { id: 'heart', emoji: '💚', label: 'Green Heart', unlockXP: 0, description: 'Love Rwanda' },
-  
-  // XP unlock avatars (progressive)
-  { id: 'hills', emoji: '🌄', label: 'Rwanda Hills', unlockXP: 50, description: 'Beautiful hills' },
-  { id: 'lake', emoji: '🏞️', label: 'Lake Kivu', unlockXP: 100, description: 'Serene lake' },
-  { id: 'mountain', emoji: '🏔️', label: 'Volcanoes', unlockXP: 200, description: 'Mountain gorillas' },
-  { id: 'sun', emoji: '☀️', label: 'Rwanda Sun', unlockXP: 300, description: 'Warm sunshine' },
-  { id: 'drum', emoji: '🥁', label: 'Inzomba Drum', unlockXP: 500, description: 'Traditional drums' },
-  
-  // High XP avatars
-  { id: 'coffee', emoji: '☕', label: 'Rwandan Coffee', unlockXP: 750, description: 'World-class coffee' },
-  { id: 'basket', emoji: '🧺', label: 'Agaseke Basket', unlockXP: 1000, description: 'Traditional craft' },
-  { id: 'cow', emoji: '🐄', label: 'Inyambo Cow', unlockXP: 1500, description: 'Sacred long-horn cow' },
-  { id: 'champion', emoji: '🏆', label: 'Champion', unlockXP: 2000, description: 'True champion' },
-  { id: 'king', emoji: '👑', label: 'Umwanzi', unlockXP: 3000, description: 'King of learning' },
-  { id: 'diamond', emoji: '💎', label: 'Diamond', unlockXP: 5000, description: 'Rare & precious' },
-  { id: 'rocket', emoji: '🚀', label: 'Mushya', unlockXP: 7000, description: 'To the moon!' },
-  { id: 'legend', emoji: '🌟', label: 'Legend', unlockXP: 10000, description: 'Living legend' },
+export const AVATARS: {
+  id: AvatarId;
+  icon: string;
+  tint: string;
+  color: string;
+  label: string;
+  unlockXP: number;
+  description: string;
+}[] = [
+  { id: 'gorilla', icon: 'smile', tint: '#E4F2F6', color: '#0B6E84', label: 'Gorilla', unlockXP: 0, description: 'Default avatar' },
+  { id: 'flag', icon: 'flag', tint: '#E6F6EE', color: '#2F9E6E', label: 'Rwanda Flag', unlockXP: 0, description: 'Pride of Rwanda' },
+  { id: 'heart', icon: 'heart', tint: '#FCEAEA', color: '#D64545', label: 'Green Heart', unlockXP: 0, description: 'Love Rwanda' },
+  { id: 'hills', icon: 'mountain', tint: '#FBF3E3', color: '#C9891C', label: 'Rwanda Hills', unlockXP: 50, description: 'Beautiful hills' },
+  { id: 'lake', icon: 'waves', tint: '#E8F1FA', color: '#2B6CB0', label: 'Lake Kivu', unlockXP: 100, description: 'Serene lake' },
+  { id: 'mountain', icon: 'mountainSnow', tint: '#F1ECFA', color: '#7C5CBF', label: 'Volcanoes', unlockXP: 200, description: 'Mountain gorillas' },
+  { id: 'sun', icon: 'sun', tint: '#FBF3E3', color: '#C9891C', label: 'Rwanda Sun', unlockXP: 300, description: 'Warm sunshine' },
+  { id: 'drum', icon: 'music', tint: '#F9EAF1', color: '#C05C8A', label: 'Inzomba Drum', unlockXP: 500, description: 'Traditional drums' },
+  { id: 'coffee', icon: 'coffee', tint: '#FBF1E3', color: '#A56B2A', label: 'Rwandan Coffee', unlockXP: 750, description: 'World-class coffee' },
+  { id: 'basket', icon: 'shoppingBag', tint: '#FBF3E3', color: '#C9891C', label: 'Agaseke Basket', unlockXP: 1000, description: 'Traditional craft' },
+  { id: 'cow', icon: 'milk', tint: '#E4F2F6', color: '#0B6E84', label: 'Inyambo Cow', unlockXP: 1500, description: 'Sacred long-horn cow' },
+  { id: 'champion', icon: 'trophy', tint: '#FBF3E3', color: '#C9891C', label: 'Champion', unlockXP: 2000, description: 'True champion' },
+  { id: 'king', icon: 'crown', tint: '#FBF3E3', color: '#C9891C', label: 'Umwanzi', unlockXP: 3000, description: 'King of learning' },
+  { id: 'diamond', icon: 'gem', tint: '#E8F1FA', color: '#2B6CB0', label: 'Diamond', unlockXP: 5000, description: 'Rare & precious' },
+  { id: 'rocket', icon: 'rocket', tint: '#F1ECFA', color: '#7C5CBF', label: 'Mushya', unlockXP: 7000, description: 'To the moon!' },
+  { id: 'legend', icon: 'star', tint: '#FBF3E3', color: '#C9891C', label: 'Legend', unlockXP: 10000, description: 'Living legend' },
 ];
 
-export const getAvatarEmoji = (id: AvatarId): string =>
-  AVATARS.find((a) => a.id === id)?.emoji ?? '🦍';
+export const getAvatarIcon = (id: AvatarId): string =>
+  AVATARS.find((avatar) => avatar.id === id)?.icon ?? 'smile';
+
+export const getAvatarTint = (id: AvatarId): string =>
+  AVATARS.find((avatar) => avatar.id === id)?.tint ?? '#E4F2F6';
+
+export const getAvatarColor = (id: AvatarId): string =>
+  AVATARS.find((avatar) => avatar.id === id)?.color ?? '#0B6E84';
+
+interface AvatarBadgeProps {
+  id: AvatarId;
+  size?: number;
+}
+
+export const AvatarBadge: React.FC<AvatarBadgeProps> = ({ id, size = 40 }) => (
+  <View
+    style={[
+      styles.avatarBadge,
+      {
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: getAvatarTint(id),
+      },
+    ]}
+  >
+    <AppIcon name={getAvatarIcon(id)} size={size * 0.5} color={getAvatarColor(id)} />
+  </View>
+);
 
 interface AvatarPickerProps {
   visible: boolean;
@@ -46,9 +76,8 @@ interface AvatarPickerProps {
 export const AvatarPicker: React.FC<AvatarPickerProps> = ({ visible, onClose }) => {
   const { progress, user, setAvatar } = useAppStore();
 
-  // Calculate XP bonus based on total XP
   const getXPBonus = (xp: number): number => {
-    if (xp >= 10000) return 50; // 50 XP bonus per lesson
+    if (xp >= 10000) return 50;
     if (xp >= 5000) return 30;
     if (xp >= 3000) return 20;
     if (xp >= 2000) return 15;
@@ -65,36 +94,32 @@ export const AvatarPicker: React.FC<AvatarPickerProps> = ({ visible, onClose }) 
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>Hitamo Ifoto / Choose Avatar</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <Text style={styles.title}>Choose your avatar</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} accessibilityLabel="Close">
               <AppIcon name="close" size={22} color={Colors.textMid} />
             </TouchableOpacity>
           </View>
 
           <Text style={styles.subtitle}>
-            Unlock more avatars by earning XP! 🌟
+            Unlock more avatars by earning XP.
           </Text>
 
-          {/* XP Bonus Display */}
           {xpBonus > 0 && (
             <View style={styles.bonusCard}>
               <AppIcon name="star1" size={16} color={Colors.yellow} />
-              <Text style={styles.bonusText}>
-                🎉 XP Bonus: +{xpBonus} XP per lesson!
-              </Text>
+              <Text style={styles.bonusText}>XP bonus: +{xpBonus} XP per lesson</Text>
             </View>
           )}
 
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.grid}>
-              {AVATARS.map((av) => {
-                const unlocked = progress.xp >= av.unlockXP;
-                const selected = user.avatar === av.id;
-                const nextUnlock = !unlocked && av.unlockXP;
-                
+              {AVATARS.map((avatar) => {
+                const unlocked = progress.xp >= avatar.unlockXP;
+                const selected = user.avatar === avatar.id;
+
                 return (
                   <TouchableOpacity
-                    key={av.id}
+                    key={avatar.id}
                     style={[
                       styles.avatarCard,
                       selected && styles.avatarSelected,
@@ -102,43 +127,33 @@ export const AvatarPicker: React.FC<AvatarPickerProps> = ({ visible, onClose }) 
                     ]}
                     onPress={() => {
                       if (unlocked) {
-                        setAvatar(av.id);
+                        setAvatar(avatar.id);
                         onClose();
                       }
                     }}
                     disabled={!unlocked}
                     activeOpacity={0.75}
                   >
-                    <Text style={styles.avatarEmoji}>{av.emoji}</Text>
+                    <View style={[styles.avatarIcon, { backgroundColor: avatar.tint }]}>
+                      <AppIcon name={avatar.icon} size={28} color={avatar.color} />
+                    </View>
                     <Text style={[styles.avatarLabel, !unlocked && { color: Colors.textLight }]}>
-                      {av.label}
+                      {avatar.label}
                     </Text>
                     <Text style={styles.avatarDesc} numberOfLines={1}>
-                      {av.description}
+                      {avatar.description}
                     </Text>
-                    
+
                     {!unlocked && (
                       <View style={styles.lockBadge}>
                         <AppIcon name="lock" size={10} color={Colors.textDark} />
-                        <Text style={styles.lockText}>{av.unlockXP} XP</Text>
+                        <Text style={styles.lockText}>{avatar.unlockXP} XP</Text>
                       </View>
                     )}
-                    
+
                     {selected && (
                       <View style={styles.selectedBadge}>
-                        <Text style={styles.selectedText}>✓</Text>
-                      </View>
-                    )}
-                    
-                    {/* Show progress to next unlock */}
-                    {!unlocked && nextUnlock && (
-                      <View style={styles.progressBar}>
-                        <View 
-                          style={[
-                            styles.progressFill, 
-                            { width: `${Math.min((progress.xp / nextUnlock) * 100, 100)}%` }
-                          ]} 
-                        />
+                        <AppIcon name="check" size={11} color={Colors.white} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -153,9 +168,13 @@ export const AvatarPicker: React.FC<AvatarPickerProps> = ({ visible, onClose }) 
 };
 
 const styles = StyleSheet.create({
+  avatarBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(12,28,36,0.45)',
     justifyContent: 'flex-end',
   },
   sheet: {
@@ -202,11 +221,18 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatarSelected: {
-    borderColor: Colors.green,
-    backgroundColor: Colors.correctLight,
+    borderColor: Colors.teal,
+    backgroundColor: Colors.tealLight,
   },
   avatarLocked: { opacity: 0.6 },
-  avatarEmoji: { fontSize: 36, marginBottom: 4 },
+  avatarIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
   avatarLabel: { fontSize: 11, fontWeight: '700', color: Colors.textDark, textAlign: 'center' },
   avatarDesc: { fontSize: 9, color: Colors.textMid, textAlign: 'center', marginTop: 2 },
   lockBadge: {
@@ -224,25 +250,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
-    backgroundColor: Colors.green,
+    backgroundColor: Colors.teal,
     width: 20,
     height: 20,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  selectedText: { fontSize: 10, color: Colors.white, fontWeight: '900' },
-  progressBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: Colors.border,
-    borderRadius: 2,
-    marginTop: 6,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.green,
-    borderRadius: 2,
   },
 });

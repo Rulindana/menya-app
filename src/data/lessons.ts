@@ -41,8 +41,8 @@ export const units: Unit[] = [
     id: 'unit1',
     title: 'Greetings',
     titleKiny: 'Gusuhuza',
-    color: '#20603D',
-    colorDark: '#164a2e',
+    color: '#0B6E84',
+    colorDark: '#085468',
     lessons: [
       {
         id: 'l1_1',
@@ -103,8 +103,8 @@ export const units: Unit[] = [
     id: 'unit2',
     title: 'Numbers',
     titleKiny: 'Ibiharuro',
-    color: '#F9A825',
-    colorDark: '#F57F17',
+    color: '#C9891C',
+    colorDark: '#A56B2A',
     lessons: [
       {
         id: 'l2_1',
@@ -166,8 +166,8 @@ export const units: Unit[] = [
     id: 'unit3',
     title: 'Colors',
     titleKiny: 'Amabara',
-    color: '#1976D2',
-    colorDark: '#1565C0',
+    color: '#2B6CB0',
+    colorDark: '#22578C',
     lessons: [
       {
         id: 'l3_1',
@@ -205,8 +205,8 @@ export const units: Unit[] = [
     id: 'unit4',
     title: 'Family',
     titleKiny: 'Umuryango',
-    color: '#20603D',
-    colorDark: '#164a2e',
+    color: '#0B6E84',
+    colorDark: '#085468',
     lessons: [
       {
         id: 'l4_1',
@@ -233,8 +233,8 @@ export const units: Unit[] = [
     id: 'unit5',
     title: 'Food & Drink',
     titleKiny: 'Ibiribwa n\'Ibyonywa',
-    color: '#F9A825',
-    colorDark: '#F57F17',
+    color: '#C9891C',
+    colorDark: '#A56B2A',
     lessons: [
       {
         id: 'l5_1',
@@ -292,8 +292,8 @@ export const units: Unit[] = [
     id: 'unit6',
     title: 'Animals',
     titleKiny: 'Ibyamamara',
-    color: '#1976D2',
-    colorDark: '#1565C0',
+    color: '#2B6CB0',
+    colorDark: '#22578C',
     lessons: [
       {
         id: 'l6_1',
@@ -331,8 +331,8 @@ export const units: Unit[] = [
     id: 'unit7',
     title: 'Body Parts',
     titleKiny: 'Ibice by\'Umwubure',
-    color: '#20603D',
-    colorDark: '#164a2e',
+    color: '#0B6E84',
+    colorDark: '#085468',
     lessons: [
       {
         id: 'l7_1',
@@ -369,8 +369,8 @@ export const units: Unit[] = [
     id: 'unit8',
     title: 'Time',
     titleKiny: 'Igihe',
-    color: '#F9A825',
-    colorDark: '#F57F17',
+    color: '#C9891C',
+    colorDark: '#A56B2A',
     lessons: [
       {
         id: 'l8_1',
@@ -406,8 +406,8 @@ export const units: Unit[] = [
     id: 'unit9',
     title: 'Common Verbs',
     titleKiny: 'Ibikorwa',
-    color: '#F57C00',
-    colorDark: '#E65100',
+    color: '#B4643C',
+    colorDark: '#8A4A2E',
     lessons: [
       {
         id: 'l9_1',
@@ -448,8 +448,8 @@ export const units: Unit[] = [
     id: 'unit10',
     title: 'Travel & Places',
     titleKiny: 'Ingendo n\'Ahantu',
-    color: '#00897B',
-    colorDark: '#00695C',
+    color: '#2F9E6E',
+    colorDark: '#257A57',
     lessons: [
       {
         id: 'l10_1',
@@ -473,8 +473,8 @@ export const units: Unit[] = [
     id: 'unit11',
     title: 'Weather',
     titleKiny: 'Ikirere',
-    color: '#1976D2',
-    colorDark: '#1565C0',
+    color: '#2B6CB0',
+    colorDark: '#22578C',
     lessons: [
       {
         id: 'l11_1',
@@ -498,8 +498,8 @@ export const units: Unit[] = [
     id: 'unit12',
     title: 'Culture',
     titleKiny: 'Umuco',
-    color: '#7B1FA2',
-    colorDark: '#6A1B9A',
+    color: '#7C5CBF',
+    colorDark: '#5E4494',
     lessons: [
       {
         id: 'l12_1',
@@ -523,8 +523,8 @@ export const units: Unit[] = [
     id: 'unit13',
     title: 'Useful Phrases',
     titleKiny: 'Ijambo',
-    color: '#C2185B',
-    colorDark: '#AD1457',
+    color: '#A34A5E',
+    colorDark: '#7E3A49',
     lessons: [
       {
         id: 'l13_1',
@@ -561,8 +561,8 @@ export const units: Unit[] = [
     id: 'unit14',
     title: 'Home & Daily Life',
     titleKiny: 'Urumuri',
-    color: '#00897B',
-    colorDark: '#00695C',
+    color: '#2F9E6E',
+    colorDark: '#257A57',
     lessons: [
       {
         id: 'l14_1',

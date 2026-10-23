@@ -1,12 +1,11 @@
 import React from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
 import { useTheme, ThemeMode } from '../theme/themeContext';
 import { Radius, Shadow } from '../theme/colors';
@@ -39,10 +38,13 @@ export const ThemeSettings: React.FC<{ navigation: any }> = ({ navigation }) => 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.header}>
-        <Text style={styles.headerTitle}>🎨 Theme / Ubwoko</Text>
-        <Text style={styles.headerSubtitle}>Hitamo ubwoko bw'ibara</Text>
-      </LinearGradient>
+      <View style={[styles.header, { backgroundColor: colors.primary }]}>
+        <View style={styles.headerTitleRow}>
+          <AppIcon name="palette" size={20} color="#FFFFFF" />
+          <Text style={styles.headerTitle}>Theme</Text>
+        </View>
+        <Text style={styles.headerSubtitle}>Choose how Menya looks</Text>
+      </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Theme Options */}
@@ -64,7 +66,7 @@ export const ThemeSettings: React.FC<{ navigation: any }> = ({ navigation }) => 
               ]}
               onPress={() => setThemeMode(option.mode)}
             >
-              <View style={styles.themeIcon}>
+              <View style={[styles.themeIcon, { backgroundColor: colors.primaryLight }]}>
                 {option.icon}
               </View>
               <View style={styles.themeInfo}>
@@ -92,7 +94,7 @@ export const ThemeSettings: React.FC<{ navigation: any }> = ({ navigation }) => 
           
           <View style={[styles.previewCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.previewTitle, { color: colors.text }]}>
-              Muraho! 👋
+              Muraho!
             </Text>
             <Text style={[styles.previewText, { color: colors.textSecondary }]}>
               This is how your app will look with the selected theme.
@@ -109,11 +111,17 @@ export const ThemeSettings: React.FC<{ navigation: any }> = ({ navigation }) => 
 
             <View style={styles.previewStats}>
               <View style={[styles.previewStat, { backgroundColor: colors.background }]}>
-                <Text style={[styles.previewStatValue, { color: colors.primary }]}>🔥 5</Text>
+                <View style={styles.previewStatRow}>
+                  <AppIcon name="flame" size={14} color={colors.primary} />
+                  <Text style={[styles.previewStatValue, { color: colors.primary }]}>5</Text>
+                </View>
                 <Text style={[styles.previewStatLabel, { color: colors.textMuted }]}>Streak</Text>
               </View>
               <View style={[styles.previewStat, { backgroundColor: colors.background }]}>
-                <Text style={[styles.previewStatValue, { color: colors.xpOrange }]}>⭐ 150</Text>
+                <View style={styles.previewStatRow}>
+                  <AppIcon name="star" size={14} color={colors.xpOrange} />
+                  <Text style={[styles.previewStatValue, { color: colors.xpOrange }]}>150</Text>
+                </View>
                 <Text style={[styles.previewStatLabel, { color: colors.textMuted }]}>XP</Text>
               </View>
             </View>
@@ -122,10 +130,11 @@ export const ThemeSettings: React.FC<{ navigation: any }> = ({ navigation }) => 
 
         {/* Back button */}
         <AnimatedButton 
-          style={[styles.backBtn, { backgroundColor: colors.primary }]}
+          style={[styles.backBtn, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backBtnText}>← Back / Subira</Text>
+          <AppIcon name="arrowLeft" size={18} color={colors.text} />
+          <Text style={[styles.backBtnText, { color: colors.text }]}>Back</Text>
         </AnimatedButton>
 
         <View style={{ height: 40 }} />
@@ -141,9 +150,14 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 24,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 26,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
   headerSubtitle: {
@@ -175,7 +189,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(32, 96, 61, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -238,11 +251,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
   },
+  previewStatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
   previewStatLabel: {
     fontSize: 11,
     marginTop: 4,
   },
   backBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
     marginHorizontal: 16,
     marginTop: 24,
     padding: 16,
@@ -250,8 +271,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
 });
