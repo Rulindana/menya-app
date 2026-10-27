@@ -14,28 +14,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppIcon } from '../components/ui/AppIcon';
 import { MenyaMascot } from '../components/MenyaMascot';
 import { useAppStore } from '../store/useAppStore';
+import { useTheme } from '../theme/themeContext';
 import {
+  areNotificationsAvailable,
   registerForPushNotifications,
   requestNotificationPermission,
   scheduleStreakReminder,
 } from '../utils/notifications';
 
 const PERMISSIONS_DONE_KEY = 'menya_permissions_granted';
-
-const P = {
-  background: '#F4F7F9',
-  surface: '#FFFFFF',
-  ink: '#14212B',
-  muted: '#5C6B76',
-  border: '#DCE5EA',
-  primary: '#0B6E84',
-  primarySoft: '#E4F2F6',
-  success: '#2F9E6E',
-  successSoft: '#E6F6EE',
-  error: '#D64545',
-  errorSoft: '#FCEAEA',
-  white: '#FFFFFF',
-};
 
 interface PermissionItem {
   id: string;
@@ -52,6 +39,7 @@ interface Props {
 
 export const PermissionsScreen: React.FC<Props> = ({ onDone }) => {
   const uid = useAppStore((state) => state.user.uid);
+  const { colors, isDark } = useTheme();
   const [permissions, setPermissions] = useState<PermissionItem[]>([
     {
       id: 'camera',
@@ -73,7 +61,9 @@ export const PermissionsScreen: React.FC<Props> = ({ onDone }) => {
       id: 'notifications',
       icon: 'bell',
       title: 'Notifications',
-      description: 'Daily practice reminders and important Menya updates.',
+      description: areNotificationsAvailable()
+        ? 'Daily practice reminders and important Menya updates.'
+        : 'Requires a development build — not available in Expo Go.',
       required: false,
       status: 'pending',
     },
@@ -110,15 +100,17 @@ export const PermissionsScreen: React.FC<Props> = ({ onDone }) => {
       updateStatus('media', 'denied');
     }
 
-    try {
-      const notificationGranted = await requestNotificationPermission();
-      updateStatus('notifications', notificationGranted ? 'granted' : 'denied');
-      if (notificationGranted) {
-        await scheduleStreakReminder(20);
-        await registerForPushNotifications(uid);
+    if (areNotificationsAvailable()) {
+      try {
+        const notificationGranted = await requestNotificationPermission();
+        updateStatus('notifications', notificationGranted ? 'granted' : 'denied');
+        if (notificationGranted) {
+          await scheduleStreakReminder(20);
+          await registerForPushNotifications(uid);
+        }
+      } catch {
+        updateStatus('notifications', 'denied');
       }
-    } catch {
-      updateStatus('notifications', 'denied');
     }
 
     setRequesting(false);
@@ -135,15 +127,15 @@ export const PermissionsScreen: React.FC<Props> = ({ onDone }) => {
     .every((permission) => permission.status === 'granted');
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <View style={styles.mascotWrap}>
+          <View style={[styles.mascotWrap, { backgroundColor: colors.primaryLight }]}>
             <MenyaMascot size={118} />
           </View>
-          <Text style={styles.title}>A few permissions</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.text }]}>A few permissions</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Menya only asks for access when it helps you learn, scan, or save your certificate.
           </Text>
         </View>
@@ -157,34 +149,59 @@ export const PermissionsScreen: React.FC<Props> = ({ onDone }) => {
                 key={permission.id}
                 style={[
                   styles.permissionCard,
-                  granted && styles.permissionGranted,
-                  denied && styles.permissionDenied,
+                  {
+                    backgroundColor: granted
+                      ? colors.success + '15'
+                      : denied
+                        ? colors.error + '15'
+                        : colors.card,
+                    borderColor: granted
+                      ? colors.success
+                      : denied
+                        ? colors.error
+                        : colors.border,
+                  },
                 ]}
               >
-                <View style={styles.permissionIcon}>
-                  <AppIcon name={permission.icon} size={22} color={P.primary} />
+                <View style={[styles.permissionIcon, { backgroundColor: colors.primaryLight }]}>
+                  <AppIcon name={permission.icon} size={22} color={colors.primary} />
                 </View>
                 <View style={styles.permissionCopy}>
                   <View style={styles.permissionTitleRow}>
-                    <Text style={styles.permissionTitle}>{permission.title}</Text>
+                    <Text style={[styles.permissionTitle, { color: colors.text }]}>
+                      {permission.title}
+                    </Text>
                     {!permission.required && (
-                      <Text style={styles.optionalLabel}>Optional</Text>
+                      <Text
+                        style={[
+                          styles.optionalLabel,
+                          { color: colors.textSecondary, backgroundColor: colors.background },
+                        ]}
+                      >
+                        Optional
+                      </Text>
                     )}
                   </View>
-                  <Text style={styles.permissionDescription}>{permission.description}</Text>
-                  {granted && <Text style={styles.grantedLabel}>Allowed</Text>}
-                  {denied && <Text style={styles.deniedLabel}>Not now</Text>}
+                  <Text style={[styles.permissionDescription, { color: colors.textSecondary }]}>
+                    {permission.description}
+                  </Text>
+                  {granted && (
+                    <Text style={[styles.grantedLabel, { color: colors.success }]}>Allowed</Text>
+                  )}
+                  {denied && (
+                    <Text style={[styles.deniedLabel, { color: colors.error }]}>Not now</Text>
+                  )}
                 </View>
-                {granted && <AppIcon name="checkCircle" size={22} color={P.success} />}
+                {granted && <AppIcon name="checkCircle" size={22} color={colors.success} />}
               </View>
             );
           })}
         </View>
 
         {attempted && !requiredGranted && (
-          <View style={styles.note}>
-            <AppIcon name="info" size={17} color={P.primary} />
-            <Text style={styles.noteText}>
+          <View style={[styles.note, { backgroundColor: colors.primaryLight }]}>
+            <AppIcon name="info" size={17} color={colors.primary} />
+            <Text style={[styles.noteText, { color: colors.textSecondary }]}>
               Camera and photo access are required for the full experience. You can
               enable any permission later in Settings → Apps → Menya → Permissions.
             </Text>
@@ -194,7 +211,11 @@ export const PermissionsScreen: React.FC<Props> = ({ onDone }) => {
         <View style={styles.spacer} />
 
         <TouchableOpacity
-          style={[styles.primaryButton, requesting && styles.buttonDisabled]}
+          style={[
+            styles.primaryButton,
+            { backgroundColor: colors.primary },
+            requesting && styles.buttonDisabled,
+          ]}
           onPress={requiredGranted ? finish : requestAll}
           disabled={requesting}
           activeOpacity={0.85}
@@ -202,11 +223,11 @@ export const PermissionsScreen: React.FC<Props> = ({ onDone }) => {
           <Text style={styles.primaryButtonText}>
             {requesting ? 'Requesting…' : requiredGranted ? 'Continue' : 'Allow access'}
           </Text>
-          <AppIcon name={requiredGranted ? 'arrowRight' : 'shield'} size={19} color={P.white} />
+          <AppIcon name={requiredGranted ? 'arrowRight' : 'shield'} size={19} color="#FFFFFF" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.skipButton} onPress={finish} activeOpacity={0.7}>
-          <Text style={styles.skipText}>Maybe later</Text>
+          <Text style={[styles.skipText, { color: colors.textSecondary }]}>Maybe later</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -225,7 +246,6 @@ export const shouldShowPermissions = async (): Promise<boolean> => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: P.background,
   },
   content: {
     flexGrow: 1,
@@ -240,7 +260,6 @@ const styles = StyleSheet.create({
     width: 136,
     height: 136,
     borderRadius: 68,
-    backgroundColor: '#E4EEF2',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -250,13 +269,11 @@ const styles = StyleSheet.create({
     fontSize: 27,
     fontWeight: '800',
     letterSpacing: -0.5,
-    color: P.ink,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 13.5,
     lineHeight: 20,
-    color: P.muted,
     textAlign: 'center',
     marginTop: 8,
     maxWidth: 310,
@@ -272,22 +289,11 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: P.border,
-    backgroundColor: P.surface,
-  },
-  permissionGranted: {
-    borderColor: P.success,
-    backgroundColor: P.successSoft,
-  },
-  permissionDenied: {
-    borderColor: P.error,
-    backgroundColor: P.errorSoft,
   },
   permissionIcon: {
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: P.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -302,13 +308,10 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: P.ink,
   },
   optionalLabel: {
     fontSize: 9.5,
     fontWeight: '600',
-    color: P.muted,
-    backgroundColor: P.background,
     borderRadius: 5,
     paddingHorizontal: 5,
     paddingVertical: 2,
@@ -316,19 +319,16 @@ const styles = StyleSheet.create({
   permissionDescription: {
     fontSize: 12,
     lineHeight: 17,
-    color: P.muted,
     marginTop: 3,
   },
   grantedLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: P.success,
     marginTop: 5,
   },
   deniedLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: P.error,
     marginTop: 5,
   },
   note: {
@@ -338,13 +338,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: P.primarySoft,
   },
   noteText: {
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
-    color: P.muted,
   },
   spacer: {
     flex: 1,
@@ -353,7 +351,6 @@ const styles = StyleSheet.create({
   primaryButton: {
     height: 54,
     borderRadius: 27,
-    backgroundColor: P.primary,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -363,7 +360,7 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   primaryButtonText: {
-    color: P.white,
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -372,7 +369,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   skipText: {
-    color: P.muted,
     fontSize: 13.5,
     fontWeight: '600',
   },

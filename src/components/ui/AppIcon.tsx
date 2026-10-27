@@ -98,6 +98,7 @@ import {
   MessageSquare,
   MessageSquareText,
   Mic,
+  Milk,
   Monitor,
   Moon,
   Mountain,
@@ -303,6 +304,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   settings: Settings,
   notification: Bell,
   notificationBing: BellRing,
+  bell: Bell,
   logout: LogOut,
 
   // Misc
@@ -339,6 +341,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   money: Banknote,
   coin: CircleDollarSign,
   bag: ShoppingBag,
+  shoppingBag: ShoppingBag,
   box: Package,
   box1: Package,
   box2: Package,
@@ -380,6 +383,8 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   cloudLightning: CloudLightning,
   wind: Wind,
   drop: Droplet,
+  milk: Milk,
+  pawPrint: PawPrint,
   map: Map,
   map1: Map,
   gps: LocateFixed,

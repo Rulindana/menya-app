@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
+import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { useTheme } from '../theme/themeContext';
 import { useAppStore } from '../store/useAppStore';
+import { useHaptics } from '../hooks/useHaptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DAILY_KEY = 'menya_daily_challenge';
@@ -58,6 +60,7 @@ const getTodayKey = () => new Date().toDateString();
 export const DailyChallengeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
   const { addXP } = useAppStore();
+  const haptics = useHaptics();
   const [phase, setPhase] = useState<'locked' | 'playing' | 'done'>('locked');
   const [questions] = useState(() => getDailyQuestions());
   const [idx, setIdx] = useState(0);
@@ -65,6 +68,7 @@ export const DailyChallengeScreen: React.FC<{ navigation: any }> = ({ navigation
   const [score, setScore] = useState(0);
   const [alreadyDone, setAlreadyDone] = useState(false);
   const [prevScore, setPrevScore] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(DAILY_KEY).then((value) => {
@@ -81,27 +85,40 @@ export const DailyChallengeScreen: React.FC<{ navigation: any }> = ({ navigation
         setPhase('playing');
       }
     });
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   const handleAnswer = (option: string) => {
     const question = questions[idx];
     const correct = option === question.a;
+    if (correct) {
+      haptics.success();
+    } else {
+      haptics.mistake();
+    }
     const newAnswers = { ...answers, [idx]: option };
     setAnswers(newAnswers);
     const newScore = score + (correct ? 1 : 0);
     setScore(newScore);
 
-    setTimeout(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
       if (idx + 1 >= questions.length) {
+        haptics.celebration();
         const earned = Math.floor((newScore / questions.length) * DAILY_XP);
         addXP(earned);
-        AsyncStorage.setItem(DAILY_KEY, JSON.stringify({ date: getTodayKey(), score: newScore }));
+        AsyncStorage.setItem(
+          DAILY_KEY,
+          JSON.stringify({ date: getTodayKey(), score: newScore, completed: true })
+        );
         setPrevScore(newScore);
         setPhase('done');
       } else {
         setIdx((current) => current + 1);
       }
-    }, 600);
+    }, 650);
   };
 
   const msUntilMidnight = () => {
@@ -170,32 +187,17 @@ export const DailyChallengeScreen: React.FC<{ navigation: any }> = ({ navigation
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBack}>
-          <AppIcon name="arrowLeft" size={20} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerCopy}>
-          <View style={styles.headerTitleRow}>
-            <AppIcon name="flash" size={15} color={colors.secondary} />
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Daily Challenge</Text>
+      <ScreenHeader
+        onBack={() => navigation.goBack()}
+        title="Daily Challenge"
+        subtitle={`Question ${idx + 1} of ${questions.length}`}
+        progress={(idx + (answered ? 1 : 0)) / questions.length}
+        right={
+          <View style={[styles.xpBadge, { backgroundColor: colors.secondary + '16' }]}>
+            <Text style={[styles.xpBadgeText, { color: colors.secondary }]}>+{DAILY_XP} XP</Text>
           </View>
-          <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-            Question {idx + 1} of {questions.length}
-          </Text>
-        </View>
-        <View style={[styles.xpBadge, { backgroundColor: colors.secondary + '1F' }]}>
-          <Text style={[styles.xpBadgeText, { color: colors.secondary }]}>+{DAILY_XP} XP</Text>
-        </View>
-      </View>
-
-      <View style={[styles.progressBg, { backgroundColor: colors.border }]}>
-        <View
-          style={[
-            styles.progressFill,
-            { width: `${(idx / questions.length) * 100}%`, backgroundColor: colors.primary },
-          ]}
-        />
-      </View>
+        }
+      />
 
       <ScrollView contentContainerStyle={styles.body}>
         <Text style={[styles.question, { color: colors.text }]}>{question.q}</Text>
@@ -203,7 +205,7 @@ export const DailyChallengeScreen: React.FC<{ navigation: any }> = ({ navigation
           {question.opts.map((option) => {
             const selected = answered === option;
             const right = option === question.a;
-            let backgroundColor = colors.card;
+            let backgroundColor = colors.surface;
             let borderColor = colors.border;
             let textColor = colors.text;
 
@@ -250,23 +252,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 54,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-  },
-  headerBack: { padding: 8 },
-  headerCopy: { flex: 1, alignItems: 'center' },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  headerTitle: { fontSize: 16, fontWeight: '800' },
-  headerSub: { fontSize: 12, marginTop: 2 },
   xpBadge: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 },
   xpBadgeText: { fontWeight: '800', fontSize: 12 },
-  progressBg: { height: 6, marginHorizontal: 16, borderRadius: 3, marginTop: 12 },
-  progressFill: { height: 6, borderRadius: 3 },
   body: { padding: 24, alignItems: 'center', paddingTop: 30 },
   question: { fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 26, lineHeight: 28, width: '100%' },
   options: { gap: 12, width: '100%' },

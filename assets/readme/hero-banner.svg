@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" width="100%" height="340">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#073B4C" />
+      <stop offset="50%" stop-color="#0B6E84" />
+      <stop offset="100%" stop-color="#1B7F5C" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFD166" />
+      <stop offset="100%" stop-color="#F4A261" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.16)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0.06)" />
+    </linearGradient>
+    <style>
+      .title { font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; font-weight: 800; fill: #FFFFFF; }
+      .sub { font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; font-weight: 600; fill: #D9EEF3; }
+      .pill-text { font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; font-weight: 700; font-size: 13px; fill: #FFFFFF; }
+      .bubble-text { font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; font-weight: 800; font-size: 14px; fill: #073B4C; }
+      .float-slow { animation: floatSlow 4s ease-in-out infinite; }
+      .float-mid { animation: floatSlow 3.2s ease-in-out infinite 0.6s; }
+      .float-fast { animation: floatSlow 2.8s ease-in-out infinite 1.2s; }
+      .pulse-ring { animation: pulseHalo 2.6s ease-out infinite; transform-origin: 770px 165px; }
+      .sun-rays { animation: spinRays 28s linear infinite; transform-origin: 850px 75px; }
+      @keyframes floatSlow {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-9px); }
+      }
+      @keyframes pulseHalo {
+        0% { transform: scale(0.92); opacity: 0.55; }
+        70% { transform: scale(1.28); opacity: 0.08; }
+        100% { transform: scale(1.32); opacity: 0; }
+      }
+      @keyframes spinRays {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="340" rx="24" fill="url(#bgGrad)" />
+
+  <!-- Rwanda Flag Accent Top Ribbon -->
+  <rect x="0" y="0" width="480" height="6" fill="#00A1DE" />
+  <rect x="480" y="0" width="240" height="6" fill="#FAD201" />
+  <rect x="720" y="0" width="240" height="6" fill="#20603D" />
+
+  <!-- Animated Sun in Top Right -->
+  <g class="sun-rays" opacity="0.28">
+    <circle cx="850" cy="75" r="34" fill="#FFD166" />
+    <g stroke="#FFD166" stroke-width="3" stroke-linecap="round">
+      <line x1="850" y1="22" x2="850" y2="32" />
+      <line x1="850" y1="118" x2="850" y2="128" />
+      <line x1="797" y1="75" x2="807" y2="75" />
+      <line x1="893" y1="75" x2="903" y2="75" />
+      <line x1="813" y1="38" x2="820" y2="45" />
+      <line x1="880" y1="105" x2="887" y2="112" />
+      <line x1="887" y1="38" x2="880" y2="45" />
+      <line x1="820" y1="105" x2="813" y2="112" />
+    </g>
+  </g>
+
+  <!-- Rolling Hills of Rwanda Silhouette -->
+  <path d="M0,290 Q180,230 370,275 T760,260 T960,280 L960,340 L0,340 Z" fill="rgba(7,59,76,0.42)" />
+  <path d="M0,308 Q240,260 490,295 T960,292 L960,340 L0,340 Z" fill="rgba(7,59,76,0.68)" />
+
+  <!-- Left Content: Brand & Value Proposition -->
+  <g transform="translate(48, 54)">
+    <!-- Brand Pill -->
+    <rect x="0" y="0" width="218" height="32" rx="16" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.25)" />
+    <circle cx="18" cy="16" r="6" fill="#FFD166" />
+    <text x="34" y="21" class="pill-text" letter-spacing="1.4">MENYA IKINYARWANDA</text>
+
+    <!-- Main Headline -->
+    <text x="0" y="84" class="title" font-size="44" letter-spacing="-0.8">Learn Kinyarwanda</text>
+    <text x="0" y="132" class="title" font-size="40" fill="url(#goldGrad)" letter-spacing="-0.6">One Joyful Step at a Time</text>
+
+    <!-- Subtitle -->
+    <text x="0" y="172" class="sub" font-size="16" opacity="0.92">
+      4-Stage Guided Learning Journey · Ibisakuzo AI Riddles · Cultural Stories · Verified Vocabulary
+    </text>
+
+    <!-- Feature Metric Badges -->
+    <g transform="translate(0, 200)">
+      <rect x="0" y="0" width="148" height="40" rx="12" fill="url(#cardGrad)" stroke="rgba(255,255,255,0.22)" />
+      <text x="18" y="25" class="pill-text">📚 14 Units · 63 Lessons</text>
+
+      <rect x="160" y="0" width="154" height="40" rx="12" fill="url(#cardGrad)" stroke="rgba(255,255,255,0.22)" />
+      <text x="178" y="25" class="pill-text">🤖 Human vs Robot</text>
+
+      <rect x="326" y="0" width="160" height="40" rx="12" fill="url(#cardGrad)" stroke="rgba(255,255,255,0.22)" />
+      <text x="344" y="25" class="pill-text">🎓 A4 QR Certificate</text>
+    </g>
+  </g>
+
+  <!-- Right Stage: Animated Mascot Emblem & Floating Kinyarwanda Speech Bubbles -->
+  <circle class="pulse-ring" cx="770" cy="165" r="74" fill="none" stroke="#FFD166" stroke-width="3" />
+  <circle cx="770" cy="165" r="72" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.28)" stroke-width="2" />
+
+  <g class="float-slow">
+    <circle cx="770" cy="165" r="54" fill="#FFFFFF" />
+    <text x="770" y="183" font-size="52" text-anchor="middle">🦍</text>
+  </g>
+
+  <!-- Floating Speech Bubble 1 -->
+  <g class="float-mid">
+    <rect x="615" y="58" width="122" height="36" rx="18" fill="#FFFFFF" />
+    <text x="676" y="81" class="bubble-text" text-anchor="middle">Muraho! 👋</text>
+  </g>
+
+  <!-- Floating Speech Bubble 2 -->
+  <g class="float-fast">
+    <rect x="815" y="92" width="118" height="36" rx="18" fill="#FFD166" />
+    <text x="874" y="115" class="bubble-text" text-anchor="middle">Amakuru? ✨</text>
+  </g>
+
+  <!-- Floating Speech Bubble 3 -->
+  <g class="float-slow">
+    <rect x="635" y="232" width="144" height="36" rx="18" fill="#E9F7FA" />
+    <text x="707" y="255" class="bubble-text" text-anchor="middle">Sakwe Sakwe! 🤖</text>
+  </g>
+</svg>

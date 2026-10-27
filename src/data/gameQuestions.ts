@@ -107,7 +107,7 @@ const convertToGameQuestions = (): GameQuestion[] => {
     
     return {
       id: `ibisakuzo_${index + 1}`,
-      question: `What is the answer to this Ibisakuzo?\n\n"${riddle.question}"`,
+      question: 'What is the answer to this Ibisakuzo?',
       questionKiny: riddle.question,
       options,
       answer: riddle.answer,

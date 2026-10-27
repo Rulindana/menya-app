@@ -6,11 +6,12 @@ import {
   StyleSheet,
   StatusBar,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
+import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { AppModal } from '../components/AppModal';
 import { XPBar } from '../components/XPBar';
-import { RwandaSun } from '../components/RwandaSun';
 import { getWordOfTheDay } from '../data/wordOfTheDay';
 import { AvatarBadge } from '../components/AvatarPicker';
 import { Footer } from '../components/Footer';
@@ -18,6 +19,8 @@ import { HeartsBadge } from '../components/HeartsBadge';
 import { HeartsSheet } from '../components/HeartsSheet';
 import { SectionBanner, UnitJourney } from '../components/journey/JourneyPath';
 import { useAppStore, getXPBonus, getStreakMultiplier } from '../store/useAppStore';
+import { speakKinyarwanda } from '../hooks/useSpeech';
+import { useHaptics } from '../hooks/useHaptics';
 import { useTheme } from '../theme/themeContext';
 import { getTotalLessons, Lesson, units } from '../data/lessons';
 import {
@@ -29,16 +32,34 @@ import {
 } from '../data/journey';
 
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { user, progress, loadFromStorage } = useAppStore();
+  const { user, progress } = useAppStore();
   const { colors, isDark, setThemeMode } = useTheme();
+  const haptics = useHaptics();
   const [wordOfDay] = useState(() => getWordOfTheDay());
   const [showHearts, setShowHearts] = useState(false);
   const [sectionInfo, setSectionInfo] = useState<JourneySection | null>(null);
   const [lockedMessage, setLockedMessage] = useState('');
+  const [dailyDone, setDailyDone] = useState(false);
 
+  // Check whether today's Daily Challenge is completed whenever HomeScreen is focused
   useEffect(() => {
-    loadFromStorage();
-  }, []);
+    const checkDailyStatus = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('menya_daily_challenge');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setDailyDone(parsed.date === new Date().toDateString() && parsed.completed === true);
+        } else {
+          setDailyDone(false);
+        }
+      } catch {
+        setDailyDone(false);
+      }
+    };
+    checkDailyStatus();
+    const unsub = navigation.addListener?.('focus', checkDailyStatus);
+    return unsub;
+  }, [navigation]);
 
   const completedIds = progress.completedLessons;
   const perfectIds = progress.perfectLessons ?? [];
@@ -53,6 +74,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const streakMultiplier = getStreakMultiplier(progress.streak);
 
   const toggleTheme = () => {
+    haptics.lightTap();
     setThemeMode(isDark ? 'light' : 'dark');
   };
 
@@ -62,6 +84,11 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       return;
     }
     navigation.navigate('Lesson', { lessonId: lesson.id });
+  };
+
+  const handleSpeakWordOfDay = () => {
+    haptics.lightTap();
+    speakKinyarwanda(wordOfDay.kiny);
   };
 
   const guideMessage = sectionInfo
@@ -76,79 +103,119 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <View style={[styles.header, { backgroundColor: colors.primary }]}>
-        <View style={styles.sunDecor}>
-          <RwandaSun size={70} animated opacity={0.15} />
-        </View>
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <View style={styles.avatarContainer}>
-              <AvatarBadge id={user.avatar} size={38} />
+      <ScreenHeader
+        left={
+          <TouchableOpacity
+            style={styles.identity}
+            onPress={() => navigation.navigate('ProfileTab')}
+            activeOpacity={0.78}
+          >
+            <AvatarBadge id={user.avatar} photoUri={user.photoUri} size={40} />
+            <View style={styles.identityCopy}>
+              <Text style={[styles.greeting, { color: colors.textSecondary }]}>Muraho!</Text>
+              <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
+                {user.displayName || 'Umunyeshuri'}
+              </Text>
             </View>
-            <View style={{ marginLeft: 10 }}>
-              <Text style={styles.greeting}>Muraho!</Text>
-              <Text style={styles.userName}>{user.displayName || 'Umunyeshuri'}</Text>
-            </View>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme} activeOpacity={0.7}>
-              {isDark ? (
-                <AppIcon name="sun" size={18} color="#D9A441" />
-              ) : (
-                <AppIcon name="moon" size={18} color="#FFFFFF" />
-              )}
+          </TouchableOpacity>
+        }
+        right={
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.iconButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={toggleTheme}
+              activeOpacity={0.72}
+            >
+              <AppIcon
+                name={isDark ? 'sun' : 'moon'}
+                size={18}
+                color={isDark ? colors.secondary : colors.textSecondary}
+              />
             </TouchableOpacity>
-            <View style={styles.statBadge}>
-              <AppIcon name="flame" size={15} color="#D9A441" />
-              <Text style={styles.statValue}>{progress.streak}</Text>
+            <View style={[styles.streakPill, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <AppIcon name="flame" size={14} color={colors.secondary} />
+              <Text style={[styles.streakValue, { color: colors.text }]}>{progress.streak}</Text>
             </View>
           </View>
-        </View>
-        <View style={styles.xpBarWrapper}>
-          <View style={styles.xpBarFlex}>
+        }
+      >
+        <View style={styles.headerProgressRow}>
+          <View style={styles.xpFlex}>
             <XPBar xp={progress.xp} level={progress.level} />
           </View>
           <HeartsBadge onPress={() => setShowHearts(true)} />
         </View>
-      </View>
+      </ScreenHeader>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {xpBonus > 0 && (
+        {(xpBonus > 0 || streakMultiplier > 1) && (
           <View style={[styles.bonusBanner, { backgroundColor: colors.card, borderLeftColor: colors.primary }]}>
             <AppIcon name="trendingUp" size={20} color={colors.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.bonusTitle, { color: colors.text }]}>XP Bonus Active</Text>
+              <Text style={[styles.bonusTitle, { color: colors.text }]}>Active XP Boosts</Text>
               <Text style={[styles.bonusSubtitle, { color: colors.textSecondary }]}>
-                +{xpBonus} XP per lesson
-                {streakMultiplier > 1 && ` · ${streakMultiplier}x streak bonus`}
+                {xpBonus > 0 ? `+${xpBonus} XP tier bonus` : 'Streak multiplier active'}
+                {streakMultiplier > 1 ? ` · ${streakMultiplier}x streak multiplier` : ''}
               </Text>
             </View>
           </View>
         )}
 
         <TouchableOpacity
-          style={[styles.dailyChallengeCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={[
+            styles.dailyChallengeCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: dailyDone ? colors.success + '55' : colors.border,
+            },
+          ]}
           onPress={() => navigation.navigate('DailyChallenge')}
           activeOpacity={0.85}
         >
-          <View style={[styles.quickIcon, { backgroundColor: colors.secondary + '1F' }]}>
-            <AppIcon name="flash" size={19} color={colors.secondary} />
+          <View
+            style={[
+              styles.quickIcon,
+              {
+                backgroundColor: dailyDone
+                  ? colors.success + '1F'
+                  : colors.secondary + '1F',
+              },
+            ]}
+          >
+            <AppIcon
+              name={dailyDone ? 'checkCircle' : 'flash'}
+              size={19}
+              color={dailyDone ? colors.success : colors.secondary}
+            />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.quickTitle, { color: colors.text }]}>Daily Challenge</Text>
+            <View style={styles.dailyTitleRow}>
+              <Text style={[styles.quickTitle, { color: colors.text }]}>Daily Challenge</Text>
+              {dailyDone && (
+                <View style={[styles.dailyDoneBadge, { backgroundColor: colors.success + '18' }]}>
+                  <Text style={[styles.dailyDoneText, { color: colors.success }]}>Done today</Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.quickSub, { color: colors.textSecondary }]}>
-              5 questions · +30 XP · Resets at midnight
+              {dailyDone
+                ? 'Completed for today · Come back tomorrow!'
+                : '5 questions · +30 XP · Resets at midnight'}
             </Text>
           </View>
           <AppIcon name="arrowRight" size={18} color={colors.textMuted} />
         </TouchableOpacity>
 
         <View style={[styles.wordCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[styles.quickIcon, { backgroundColor: colors.primaryLight }]}>
-            <AppIcon name="sparkles" size={19} color={colors.primary} />
-          </View>
+          <TouchableOpacity
+            style={[styles.quickIcon, { backgroundColor: colors.primaryLight }]}
+            onPress={handleSpeakWordOfDay}
+            activeOpacity={0.75}
+          >
+            <AppIcon name="volumeHigh" size={19} color={colors.primary} />
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <View style={styles.wordTopRow}>
               <Text style={[styles.wordOverline, { color: colors.textMuted }]}>WORD OF THE DAY</Text>
@@ -161,7 +228,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Text style={[styles.wordTranslation, { color: colors.primary }]}>· {wordOfDay.english}</Text>
             </Text>
             <Text style={[styles.wordMeta, { color: colors.textSecondary }]}>
-              /{wordOfDay.pronunciation}/ · {wordOfDay.exampleTranslation}
+              /{wordOfDay.pronunciation}/ · {wordOfDay.example} ({wordOfDay.exampleTranslation})
             </Text>
           </View>
         </View>
@@ -306,54 +373,44 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  sunDecor: { position: 'absolute', top: 10, right: 10 },
-  headerContent: {
+  identity: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    gap: 10,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  headerRight: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  avatarContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  identityCopy: { flex: 1 },
+  greeting: { fontSize: 11.5, fontWeight: '500' },
+  userName: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
+  headerActions: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
+    gap: 8,
   },
-  greeting: { fontSize: 12, color: 'rgba(255,255,255,0.75)' },
-  userName: { fontSize: 17, fontWeight: '800', color: '#FFFFFF' },
-  themeToggle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  iconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statBadge: {
+  streakPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
     gap: 5,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 18,
   },
-  statValue: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
-  xpBarWrapper: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 2 },
-  xpBarFlex: { flex: 1 },
+  streakValue: { fontSize: 13, fontWeight: '700' },
+  headerProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+  },
+  xpFlex: { flex: 1 },
   scroll: { flex: 1 },
   bonusBanner: {
     flexDirection: 'row',
@@ -376,6 +433,20 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
+  },
+  dailyTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dailyDoneBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  dailyDoneText: {
+    fontSize: 10,
+    fontWeight: '800',
   },
   quickIcon: {
     width: 42,

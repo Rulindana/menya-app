@@ -1,14 +1,14 @@
 import React from 'react';
 import {
   View,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
 } from 'react-native';
 import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
+import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { useTheme, ThemeMode } from '../theme/themeContext';
-import { Radius, Shadow } from '../theme/colors';
+import { Shadow } from '../theme/colors';
 import { AnimatedButton } from '../components/AnimatedButton';
 
 export const ThemeSettings: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -37,14 +37,11 @@ export const ThemeSettings: React.FC<{ navigation: any }> = ({ navigation }) => 
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.primary }]}>
-        <View style={styles.headerTitleRow}>
-          <AppIcon name="palette" size={20} color="#FFFFFF" />
-          <Text style={styles.headerTitle}>Theme</Text>
-        </View>
-        <Text style={styles.headerSubtitle}>Choose how Menya looks</Text>
-      </View>
+      <ScreenHeader
+        onBack={() => navigation.goBack()}
+        title="Theme"
+        subtitle="Choose how Menya looks"
+      />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Theme Options */}
@@ -128,15 +125,6 @@ export const ThemeSettings: React.FC<{ navigation: any }> = ({ navigation }) => 
           </View>
         </View>
 
-        {/* Back button */}
-        <AnimatedButton 
-          style={[styles.backBtn, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
-          onPress={() => navigation.goBack()}
-        >
-          <AppIcon name="arrowLeft" size={18} color={colors.text} />
-          <Text style={[styles.backBtnText, { color: colors.text }]}>Back</Text>
-        </AnimatedButton>
-
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -145,26 +133,6 @@ export const ThemeSettings: React.FC<{ navigation: any }> = ({ navigation }) => 
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
-  },
   scroll: { flex: 1 },
   section: {
     paddingHorizontal: 16,
@@ -259,19 +227,5 @@ const styles = StyleSheet.create({
   previewStatLabel: {
     fontSize: 11,
     marginTop: 4,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 24,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  backBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
   },
 });

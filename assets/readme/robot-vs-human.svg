@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 250" width="100%" height="250">
+  <defs>
+    <style>
+      .heading { font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; font-weight: 800; font-size: 16px; fill: #14212B; }
+      .subtext { font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; font-weight: 600; font-size: 13px; fill: #E76F51; }
+      .opt-text { font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; font-weight: 700; font-size: 13px; fill: #14212B; }
+      .bot-head { animation: botThink 1.4s ease-in-out infinite; transform-origin: 96px 96px; }
+      .bot-halo { animation: haloPulse 1.6s ease-out infinite; transform-origin: 96px 96px; }
+      .dot-1 { animation: dotBounce 1.1s ease-in-out infinite 0s; }
+      .dot-2 { animation: dotBounce 1.1s ease-in-out infinite 0.18s; }
+      .dot-3 { animation: dotBounce 1.1s ease-in-out infinite 0.36s; }
+      .bar-fill { animation: barFill 2.8s ease-in-out infinite; }
+      .scan-a { animation: scanHighlight 2.8s infinite 0s; }
+      .scan-b { animation: scanHighlight 2.8s infinite 0.7s; }
+      .scan-c { animation: scanHighlight 2.8s infinite 1.4s; }
+      .scan-d { animation: scanHighlight 2.8s infinite 2.1s; }
+      @keyframes botThink {
+        0%, 100% { transform: translateY(0px) rotate(-8deg); }
+        50% { transform: translateY(-6px) rotate(8deg); }
+      }
+      @keyframes haloPulse {
+        0% { transform: scale(0.95); opacity: 0.45; }
+        100% { transform: scale(1.38); opacity: 0.05; }
+      }
+      @keyframes dotBounce {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+      }
+      @keyframes barFill {
+        0% { width: 24px; }
+        85%, 100% { width: 320px; }
+      }
+      @keyframes scanHighlight {
+        0%, 24% { stroke: #E76F51; stroke-width: 2.5; fill: #FFF4EF; }
+        25%, 100% { stroke: #D5E5EC; stroke-width: 1.5; fill: #FFFFFF; }
+      }
+    </style>
+  </defs>
+
+  <rect width="960" height="250" rx="20" fill="#F8FBFC" stroke="#D5E5EC" stroke-width="1.5" />
+
+  <!-- Left Panel: Robot Thinking Card -->
+  <rect x="28" y="28" width="440" height="194" rx="18" fill="#FFFFFF" stroke="#F4A261" stroke-width="2" />
+
+  <!-- Score Pill Row -->
+  <rect x="48" y="46" width="176" height="34" rx="10" fill="#EBF6F8" />
+  <text x="64" y="68" class="opt-text" fill="#0B6E84">🧑 You (Human) · 4</text>
+
+  <text x="238" y="68" class="opt-text" fill="#8C9BA5">VS</text>
+
+  <rect x="268" y="46" width="180" height="34" rx="10" fill="#FFF1EB" stroke="#F4A261" />
+  <text x="284" y="68" class="opt-text" fill="#E76F51">🤖 Robot (AI) · 4</text>
+
+  <!-- Animated Robot Stage -->
+  <circle class="bot-halo" cx="96" cy="144" r="32" fill="#F4A261" />
+  <g class="bot-head">
+    <circle cx="96" cy="144" r="28" fill="#FFF1EB" stroke="#E76F51" stroke-width="2" />
+    <text x="96" y="154" font-size="28" text-anchor="middle">🤖</text>
+  </g>
+
+  <!-- Thinking Text + Bouncing Dots -->
+  <text x="142" y="132" class="heading">Sakwe Sakwe: &quot;akayira kajya mu ijuru&quot;</text>
+  <text x="142" y="156" class="subtext">Robot irimo gusesengura... (Evaluating options)</text>
+
+  <circle class="dot-1" cx="422" cy="152" r="4" fill="#E76F51" />
+  <circle class="dot-2" cx="434" cy="152" r="4" fill="#E76F51" />
+  <circle class="dot-3" cx="446" cy="152" r="4" fill="#E76F51" />
+
+  <!-- Thinking Progress Bar -->
+  <rect x="142" y="174" width="306" height="8" rx="4" fill="#FDE8DF" />
+  <rect class="bar-fill" x="142" y="174" width="180" height="8" rx="4" fill="#E76F51" />
+
+  <!-- Right Panel: Live Option Scanner A / B / C / D -->
+  <g transform="translate(496, 28)">
+    <rect class="scan-a" x="0" y="0" width="436" height="42" rx="12" fill="#FFFFFF" stroke="#D5E5EC" />
+    <circle cx="24" cy="21" r="12" fill="#EBF6F8" />
+    <text x="24" y="25" class="opt-text" text-anchor="middle">A</text>
+    <text x="48" y="26" class="opt-text">Umwotsi (Smoke rising to the sky)</text>
+
+    <rect class="scan-b" x="0" y="50" width="436" height="42" rx="12" fill="#FFFFFF" stroke="#D5E5EC" />
+    <circle cx="24" cy="71" r="12" fill="#EBF6F8" />
+    <text x="24" y="75" class="opt-text" text-anchor="middle">B</text>
+    <text x="48" y="76" class="opt-text">Igicucu (Shadow)</text>
+
+    <rect class="scan-c" x="0" y="100" width="436" height="42" rx="12" fill="#FFFFFF" stroke="#D5E5EC" />
+    <circle cx="24" cy="121" r="12" fill="#EBF6F8" />
+    <text x="24" y="125" class="opt-text" text-anchor="middle">C</text>
+    <text x="48" y="126" class="opt-text">Urutoki (Banana plantation)</text>
+
+    <rect class="scan-d" x="0" y="150" width="436" height="42" rx="12" fill="#FFFFFF" stroke="#D5E5EC" />
+    <circle cx="24" cy="171" r="12" fill="#EBF6F8" />
+    <text x="24" y="175" class="opt-text" text-anchor="middle">D</text>
+    <text x="48" y="176" class="opt-text">Imvura (Rain)</text>
+  </g>
+</svg>

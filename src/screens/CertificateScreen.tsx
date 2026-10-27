@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
+import { AvatarBadge } from '../components/AvatarPicker';
+import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { useTheme } from '../theme/themeContext';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { useAppStore } from '../store/useAppStore';
@@ -20,12 +22,18 @@ import * as FileSystem from 'expo-file-system/legacy';
 import QRCode from 'react-native-qrcode-svg';
 import { buildCertificateHtml } from '../utils/certificateHtml';
 
-// ── Generate a unique cert ID from uid + date ──
+// ── Generate a deterministic unique cert ID from uid + year ──
 const makeCertId = (uid: string | null, earnedAt: string | undefined): string => {
-  const base = uid ? uid.slice(0, 8).toUpperCase() : 'GUEST001';
+  const rawUid = uid || 'GUEST001';
+  const base = rawUid.slice(0, 8).toUpperCase();
   const year = earnedAt ? new Date(earnedAt).getFullYear() : new Date().getFullYear();
-  const random = Math.floor(Math.random() * 90000 + 10000);
-  return `MK${year}${base}${random}`;
+  let hash = 2166136261;
+  for (let i = 0; i < rawUid.length; i++) {
+    hash ^= rawUid.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const suffix = String((Math.abs(hash) % 90000) + 10000);
+  return `MK${year}${base}${suffix}`;
 };
 
 // ── Convert local image URI to base64 data URI ──
@@ -44,7 +52,7 @@ const uriToBase64 = async (uri: string | null): Promise<string> => {
 };
 
 export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { user, progress, certificate } = useAppStore();
+  const { user, progress, certificate, earnCertificate } = useAppStore();
   const { colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -55,8 +63,15 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
 
   const totalLessons = getTotalLessons();
   const completedLessons = progress.completedLessons.length;
-  // Strict gate: ALL lessons must be done — ignore certificate.earned flag
+  // Strict gate: ALL lessons must be done
   const allDone = completedLessons >= totalLessons;
+
+  // Persist certificate unlock if all lessons are done
+  useEffect(() => {
+    if (allDone && !certificate.earned) {
+      earnCertificate();
+    }
+  }, [allDone, certificate.earned]);
 
   // ── Badge tier based on % of lessons completed perfectly ──
   const perfectCount = progress.perfectLessons?.length ?? 0;
@@ -70,21 +85,23 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
   };
   const badge = getBadgeTier();
 
-  const today = new Date().toLocaleDateString('en-US', {
+  const issueDateObj = certificate.earnedAt ? new Date(certificate.earnedAt) : new Date();
+  const today = issueDateObj.toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
 
-  // Stable cert ID — stored in certificate.earnedAt timestamp
-  const [certId] = useState(() => makeCertId(user.uid, certificate.earnedAt));
+  // Deterministic cert ID — stable across mounts and QR scans
+  const certId = makeCertId(user.uid, certificate.earnedAt);
 
   // QR code content — self-contained Menya cert data (no external URL needed)
   // Encoded as JSON so the in-app QR scanner can verify and display it
-  const [qrValue, setQrValue] = useState(`{"menya":true,"name":"${user.displayName || 'Umunyeshuri'}","age":${user.age || 0},"certId":"${certId}","date":"${today}"}`);
+  const [qrValue, setQrValue] = useState(
+    `{"menya":true,"name":"${user.displayName || 'Umunyeshuri'}","age":${user.age || 0},"certId":"${certId}","date":"${today}"}`
+  );
 
   // Store photo URI locally so QR scanner can retrieve full photo by certId
   useEffect(() => {
     if (user.photoUri && certId) {
-      // Save mapping: certId -> photoUri for local QR verification
       const key = `menya_cert_photo_${certId}`;
       import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
         AsyncStorage.setItem(key, user.photoUri!).catch(() => {});
@@ -93,7 +110,6 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
   }, [certId, user.photoUri]);
 
   // If we have a photo, embed a small thumbnail as base64 in the QR data.
-  // We keep it tiny (60x60, quality 0.3) so the QR stays scannable.
   useEffect(() => {
     const buildQR = async () => {
       const data: Record<string, any> = {
@@ -106,13 +122,9 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
 
       if (user.photoUri) {
         try {
-          // Read photo and embed as compact base64 (no resize lib needed —
-          // we just read the file; the photo was already saved at 0.8 quality
-          // and 1:1 crop so it is already reasonable in size)
           const base64 = await FileSystem.readAsStringAsync(user.photoUri, {
             encoding: FileSystem.EncodingType.Base64,
           });
-          // Only embed if small enough (< 1500 chars) to keep QR scannable
           if (base64.length < 1500) {
             const ext = user.photoUri.split('.').pop()?.toLowerCase() || 'jpeg';
             const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
@@ -128,7 +140,7 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
       setQrValue(JSON.stringify(data));
     };
     buildQR();
-  }, [user.displayName, certId, user.photoUri]);
+  }, [user.displayName, certId, user.photoUri, today]);
 
   useEffect(() => {
     Animated.parallel([
@@ -140,10 +152,8 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
   // ── Generate and save/share PDF ──
   const generatePdf = async (): Promise<string | null> => {
     try {
-      // Convert profile photo to base64
       const photoBase64 = await uriToBase64(user.photoUri || null);
 
-      // Get QR code as base64 PNG via SVG ref
       let qrDataUrl = '';
       if (qrSvgRef) {
         await new Promise<void>((resolve) => {
@@ -192,12 +202,10 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
       const pdfUri = await generatePdf();
       if (!pdfUri) throw new Error('PDF generation failed');
 
-      // Copy to a named permanent file
       const fileName = `Menya_Certificate_${certId}.pdf`;
       const destUri = FileSystem.documentDirectory + fileName;
       await FileSystem.copyAsync({ from: pdfUri, to: destUri });
 
-      // Share the file (this opens Save/Share dialog on Android)
       await Sharing.shareAsync(destUri, {
         mimeType: 'application/pdf',
         dialogTitle: 'Save Certificate PDF',
@@ -216,7 +224,6 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
       const pdfUri = await generatePdf();
       if (!pdfUri) throw new Error('PDF generation failed');
 
-      // shareAsync shares the ACTUAL FILE, not text
       await Sharing.shareAsync(pdfUri, {
         mimeType: 'application/pdf',
         dialogTitle: `Menya Certificate — ${user.displayName}`,
@@ -233,6 +240,11 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
   if (!allDone) {
     return (
       <View style={[styles.bg, { backgroundColor: colors.background }]}>
+        <ScreenHeader
+          onBack={() => navigation.goBack()}
+          title="Your certificate"
+          subtitle="Unlock it by completing every lesson"
+        />
         <ScrollView contentContainerStyle={styles.lockedContainer} showsVerticalScrollIndicator={false}>
           <View style={[styles.lockedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={[styles.lockIconWrap, { backgroundColor: colors.primaryLight }]}>
@@ -290,19 +302,18 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
 
   return (
     <View style={[styles.bg, { backgroundColor: colors.background }]}>
+      <ScreenHeader
+        onBack={() => navigation.goBack()}
+        title="Your certificate"
+        subtitle="A record of your Kinyarwanda journey"
+        right={
+          <View style={[styles.headerTier, { backgroundColor: badge.color + '18' }]}>
+            <AppIcon name={badgeIcon} size={13} color={badge.color} />
+            <Text style={[styles.headerTierText, { color: badge.color }]}>{badge.label}</Text>
+          </View>
+        }
+      />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.pageHeader}>
-          <View style={[styles.pageIcon, { backgroundColor: colors.primaryLight }]}>
-            <AppIcon name="award" size={21} color={colors.primary} />
-          </View>
-          <View style={styles.pageHeaderCopy}>
-            <Text style={[styles.pageTitle, { color: colors.text }]}>Your certificate</Text>
-            <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>
-              A record of your Kinyarwanda journey.
-            </Text>
-          </View>
-        </View>
-
         <View
           style={[
             styles.badgeBanner,
@@ -385,9 +396,7 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
                 {user.photoUri ? (
                   <Image source={{ uri: user.photoUri }} style={styles.paperPhoto} />
                 ) : (
-                  <View style={styles.paperPhotoPlaceholder}>
-                    <Text style={styles.paperPhotoInitial}>{initial}</Text>
-                  </View>
+                  <AvatarBadge id={user.avatar} size={52} />
                 )}
                 <Text style={styles.photoCaption}>STUDENT</Text>
               </View>
@@ -476,7 +485,7 @@ export const CertificateScreen: React.FC<{ navigation: any }> = ({ navigation })
 const styles = StyleSheet.create({
   bg: { flex: 1 },
   container: {
-    paddingTop: 54,
+    paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 36,
     alignItems: 'center',
@@ -550,24 +559,15 @@ const styles = StyleSheet.create({
   },
 
   // Page header
-  pageHeader: {
-    width: '100%',
-    maxWidth: 440,
+  headerTier: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
-    marginBottom: 14,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  pageIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pageHeaderCopy: { flex: 1 },
-  pageTitle: { fontSize: 24, fontWeight: '700', letterSpacing: -0.4 },
-  pageSubtitle: { fontSize: 12.5, marginTop: 2 },
+  headerTierText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
 
   // Badge summary
   badgeBanner: {

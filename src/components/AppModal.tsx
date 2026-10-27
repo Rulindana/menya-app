@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  View,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
   Animated,
-  StatusBar,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Text } from './ui/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,55 +52,30 @@ export const AppModal: React.FC<AppModalProps> = ({
   type = 'info',
   icon,
 }) => {
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const bgOpacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(420)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
 
   useEffect(() => {
     if (visible) {
-      scaleAnim.setValue(0.8);
-      opacityAnim.setValue(0);
-      bgOpacity.setValue(0);
+      translateY.setValue(420);
+      backdropOpacity.setValue(0);
       Animated.parallel([
-        Animated.timing(bgOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 8,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(bgOpacity, {
+        Animated.spring(translateY, {
           toValue: 0,
-          duration: 150,
+          friction: 9,
+          tension: 55,
           useNativeDriver: true,
         }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.8,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 150,
+        Animated.timing(backdropOpacity, {
+          toValue: 1,
+          duration: 220,
           useNativeDriver: true,
         }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, translateY, backdropOpacity]);
 
   const handleCancel = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -122,111 +98,151 @@ export const AppModal: React.FC<AppModalProps> = ({
   const displayIcon = icon || TYPE_ICONS[type] || 'info';
 
   return (
-    <Modal transparent visible={visible} animationType="none" statusBarTranslucent>
-      <StatusBar barStyle="light-content" />
-      <Animated.View style={[styles.overlay, { opacity: bgOpacity, backgroundColor: colors.overlay }]}>
+    <Modal
+      transparent
+      visible={visible}
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={showCancel ? handleCancel : handleConfirm}
+    >
+      <View style={styles.root}>
         <Animated.View
           style={[
-            styles.modalContainer,
+            StyleSheet.absoluteFill,
+            { backgroundColor: colors.overlay, opacity: backdropOpacity },
+          ]}
+        />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={showCancel ? handleCancel : handleConfirm}
+        />
+
+        <Animated.View
+          style={[
+            styles.sheet,
             {
               backgroundColor: colors.surface,
-              transform: [{ scale: scaleAnim }],
-              opacity: opacityAnim,
-              paddingBottom: Math.max(insets.bottom, 24),
+              paddingBottom: Math.max(insets.bottom, 18),
+              transform: [{ translateY }],
             },
           ]}
         >
-          <View style={[styles.iconContainer, { backgroundColor: accent + '16', borderColor: accent + '55' }]}>
-            <AppIcon name={displayIcon} size={26} color={accent} />
+          <View style={[styles.handle, { backgroundColor: colors.border }]} />
+
+          <View style={[styles.iconCircle, { backgroundColor: accent + '16' }]}>
+            <AppIcon name={displayIcon} size={25} color={accent} />
           </View>
 
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
 
-          <View style={styles.buttonRow}>
-            {showCancel && (
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: colors.card }]}
-                onPress={handleCancel}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.buttonText, { color: cancelColor || colors.textSecondary }]}>
-                  {cancelText}
-                </Text>
-              </TouchableOpacity>
-            )}
+          <ScrollView
+            style={styles.messageScroll}
+            contentContainerStyle={styles.messageContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
+          </ScrollView>
+
+          <View style={styles.actions}>
             {showConfirm && (
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: confirmColor || colors.primary }]}
                 onPress={handleConfirm}
-                activeOpacity={0.7}
+                activeOpacity={0.85}
               >
-                <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>{confirmText}</Text>
+                <Text style={styles.confirmText}>{confirmText}</Text>
+              </TouchableOpacity>
+            )}
+            {showCancel && (
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton, { backgroundColor: colors.card }]}
+                onPress={handleCancel}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.cancelText, { color: cancelColor || colors.textSecondary }]}>
+                  {cancelText}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
         </Animated.View>
-      </Animated.View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  root: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 28,
+    justifyContent: 'flex-end',
   },
-  modalContainer: {
-    borderRadius: 22,
-    paddingTop: 28,
-    paddingBottom: 24,
-    paddingHorizontal: 22,
+  sheet: {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 560,
+    alignSelf: 'center',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 10,
     shadowColor: '#14212B',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.14,
     shadowRadius: 24,
-    elevation: 16,
+    elevation: 18,
   },
-  iconContainer: {
+  handle: {
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 18,
+  },
+  iconCircle: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     alignSelf: 'center',
-    marginBottom: 14,
-    borderWidth: 1.5,
+    marginBottom: 12,
   },
   title: {
     fontSize: 19,
-    fontWeight: '800',
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: 8,
   },
-  message: {
-    fontSize: 14.5,
-    textAlign: 'center',
-    lineHeight: 21,
-    marginBottom: 22,
-    paddingHorizontal: 4,
+  messageScroll: {
+    maxHeight: 260,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 10,
+  messageContent: {
+    paddingBottom: 18,
+  },
+  message: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    paddingHorizontal: 6,
+  },
+  actions: {
+    gap: 9,
   },
   button: {
-    flex: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonText: {
+  cancelButton: {
+    backgroundColor: 'transparent',
+  },
+  confirmText: {
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  cancelText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

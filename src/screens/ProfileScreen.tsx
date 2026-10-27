@@ -10,10 +10,10 @@ import { Text } from '../components/ui/AppText';
 import { TextInput } from '../components/ui/AppTextInput';
 import { AppModal } from '../components/AppModal';
 import { AppIcon } from '../components/ui/AppIcon';
-import { AvatarPicker, AvatarBadge } from '../components/AvatarPicker';
+import { AvatarPicker, AvatarBadge, persistAvatarPhotoUri } from '../components/AvatarPicker';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { XPBar } from '../components/XPBar';
-import { RwandaSun } from '../components/RwandaSun';
+import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { useTheme } from '../theme/themeContext';
 import { useAppStore } from '../store/useAppStore';
 import { units, getTotalLessons } from '../data/lessons';
@@ -23,6 +23,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import * as Print from 'expo-print';
 import {
+  areNotificationsAvailable,
   cancelNotifications,
   enableNotifications,
   getNotificationSettings,
@@ -38,8 +39,9 @@ const getStreakIcon = (streak: number): string => {
 };
 
 export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { user, progress, certificate, logout, setUser, setPhotoUri } = useAppStore();
+  const { user, progress, logout, updateDisplayName, setPhotoUri } = useAppStore();
   const { colors, isDark } = useTheme();
+  const notificationsAvailable = areNotificationsAvailable();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -53,6 +55,10 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
   }, []);
 
   const handleToggleNotifications = async () => {
+    if (!notificationsAvailable) {
+      setShowNotificationsError(true);
+      return;
+    }
     if (notificationsBusy) return;
     setNotificationsBusy(true);
     if (notificationsEnabled) {
@@ -134,14 +140,8 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
   };
 
   const persistPhoto = async (uri: string) => {
-    try {
-      const extension = uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const destination = `${FileSystem.documentDirectory}profile_${user.uid || 'user'}.${extension}`;
-      await FileSystem.copyAsync({ from: uri, to: destination });
-      setPhotoUri(destination);
-    } catch {
-      setPhotoUri(uri);
-    }
+    const saved = await persistAvatarPhotoUri(uri, user.uid);
+    setPhotoUri(saved);
   };
 
   const handlePickPhoto = async (source: 'camera' | 'library') => {
@@ -153,19 +153,21 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         const result = await ImagePicker.launchCameraAsync({
           allowsEditing: true,
           aspect: [1, 1],
-          quality: 0.75,
+          quality: 0.8,
         });
-        if (!result.canceled && result.assets[0]) {
+        if (!result.canceled && result.assets?.[0]?.uri) {
           await persistPhoto(result.assets[0].uri);
         }
       } else {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permission.status !== 'granted') return;
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
           allowsEditing: true,
           aspect: [1, 1],
-          quality: 0.75,
+          quality: 0.8,
         });
-        if (!result.canceled && result.assets[0]) {
+        if (!result.canceled && result.assets?.[0]?.uri) {
           await persistPhoto(result.assets[0].uri);
         }
       }
@@ -179,85 +181,116 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       setShowNameErrorModal(true);
       return;
     }
-    setUser({ displayName: nameInput.trim() });
+    updateDisplayName(nameInput.trim());
     setEditingName(false);
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.primary }]}>
-        <RwandaSun size={50} animated opacity={0.12} />
-        
-        {/* Avatar with edit button */}
-        <TouchableOpacity 
-          style={styles.avatarWrapper}
-          onPress={() => setShowAvatarPicker(true)}
-        >
-          {user.photoUri ? (
-            <Image source={{ uri: user.photoUri }} style={styles.profilePhoto} />
-          ) : (
-            <AvatarBadge id={user.avatar} size={80} />
-          )}
-          <View style={[styles.avatarEditBadge, { backgroundColor: colors.primaryDark }]}>
-            <AppIcon name="edit" size={12} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
-
-        {/* Name with edit */}
-        <View style={styles.nameRow}>
-          {editingName ? (
-            <View style={styles.nameEditRow}>
-              <TextInput
-                style={[styles.nameInput, { borderBottomColor: colors.secondary }]}
-                value={nameInput}
-                onChangeText={setNameInput}
-                autoFocus
-                placeholder="Izina ryawe"
-                placeholderTextColor="rgba(255,255,255,0.5)"
-              />
-              <TouchableOpacity onPress={handleSaveName} style={styles.nameSaveBtn}>
-                <AppIcon name="save" size={18} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setEditingName(false)} style={styles.nameCancelBtn}>
-                <AppIcon name="close" size={18} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity 
-              style={styles.nameRow}
-              onPress={() => {
-                setNameInput(user.displayName || '');
-                setEditingName(true);
-              }}
-            >
-              <Text style={styles.userName}>{user.displayName || 'Umunyeshuri'}</Text>
-              <AppIcon name="edit" size={16} color="rgba(255,255,255,0.6)" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <Text style={styles.userEmail}>{user.email || ''}</Text>
-        
-        <View style={[styles.levelBadge, { backgroundColor: colors.secondary + '22', borderColor: colors.secondary + '55' }]}>
-          <AppIcon name="trophy" size={14} color={colors.secondary} />
-          <Text style={[styles.levelText, { color: colors.secondary }]}>Level {progress.level}</Text>
-        </View>
-
-        {/* Streak Champion Badge */}
-        {progress.streak >= 3 && (
-          <View style={styles.championBadge}>
-            <AppIcon name={streakIcon} size={15} color="#FFFFFF" />
-            <Text style={styles.championText}>
-              {progress.streak >= 30 ? 'Champion!' : 
-               progress.streak >= 14 ? 'Mountain Master' :
-               progress.streak >= 7 ? 'Lake Explorer' : 'Hills Walker'}
+      <ScreenHeader
+        title="Profile"
+        subtitle="Your journey, stats and achievements"
+        right={
+          <View style={[styles.headerLevelPill, { backgroundColor: colors.secondary + '18' }]}>
+            <AppIcon name="trophy" size={14} color={colors.secondary} />
+            <Text style={[styles.headerLevelText, { color: colors.secondary }]}>
+              Level {progress.level}
             </Text>
           </View>
-        )}
-      </View>
+        }
+      />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={() => setShowAvatarPicker(true)}
+            activeOpacity={0.8}
+          >
+            <AvatarBadge id={user.avatar} photoUri={user.photoUri} size={84} />
+            <View style={[styles.avatarEditBadge, { backgroundColor: colors.primary, borderColor: colors.card }]}>
+              <AppIcon name="edit" size={12} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.avatarQuickActionsRow}>
+            <TouchableOpacity
+              style={[styles.avatarQuickChip, { backgroundColor: colors.primary + '16', borderColor: colors.primary + '44' }]}
+              onPress={() => setShowPhotoModal(true)}
+              activeOpacity={0.8}
+            >
+              <AppIcon name="camera" size={13} color={colors.primary} />
+              <Text style={[styles.avatarQuickChipText, { color: colors.primary }]}>
+                Pick Image
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.avatarQuickChip, { backgroundColor: colors.secondary + '18', borderColor: colors.secondary + '44' }]}
+              onPress={() => setShowAvatarPicker(true)}
+              activeOpacity={0.8}
+            >
+              <AppIcon name="smile" size={13} color={colors.secondary} />
+              <Text style={[styles.avatarQuickChipText, { color: colors.secondary }]}>
+                Pick Emoji
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.nameRow}>
+            {editingName ? (
+              <View style={styles.nameEditRow}>
+                <TextInput
+                  style={[styles.nameInput, { color: colors.text, borderBottomColor: colors.primary }]}
+                  value={nameInput}
+                  onChangeText={setNameInput}
+                  autoFocus
+                  placeholder="Izina ryawe"
+                  placeholderTextColor={colors.textMuted}
+                />
+                <TouchableOpacity
+                  onPress={handleSaveName}
+                  style={[styles.nameSaveBtn, { backgroundColor: colors.primary }]}
+                >
+                  <AppIcon name="save" size={17} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setEditingName(false)}
+                  style={[styles.nameCancelBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
+                >
+                  <AppIcon name="close" size={17} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.nameRow}
+                onPress={() => {
+                  setNameInput(user.displayName || '');
+                  setEditingName(true);
+                }}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.userName, { color: colors.text }]}>
+                  {user.displayName || 'Umunyeshuri'}
+                </Text>
+                <AppIcon name="edit" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user.email || ''}</Text>
+
+          {progress.streak >= 3 && (
+            <View style={[styles.championBadge, { backgroundColor: colors.secondary + '16' }]}>
+              <AppIcon name={streakIcon} size={14} color={colors.secondary} />
+              <Text style={[styles.championText, { color: colors.secondary }]}>
+                {progress.streak >= 30 ? 'Champion!' :
+                 progress.streak >= 14 ? 'Mountain Master' :
+                 progress.streak >= 7 ? 'Lake Explorer' : 'Hills Walker'}
+              </Text>
+            </View>
+          )}
+        </View>
+
         {/* XP Bar */}
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Ingufu / Progress</Text>
@@ -298,9 +331,11 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           <View style={{ flex: 1 }}>
             <Text style={[styles.themeBtnTitle, { color: colors.text }]}>Notifications</Text>
             <Text style={[styles.themeBtnSubtitle, { color: colors.textSecondary }]}>
-              {notificationsEnabled
-                ? 'Daily practice reminder at 8:00 PM'
-                : 'Get practice reminders and Menya updates'}
+              {!notificationsAvailable
+                ? 'Requires a development build — unavailable in Expo Go'
+                : notificationsEnabled
+                  ? 'Daily practice reminder at 8:00 PM'
+                  : 'Get practice reminders and Menya updates'}
             </Text>
           </View>
           <View
@@ -319,7 +354,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                 { color: notificationsEnabled ? colors.success : colors.textMuted },
               ]}
             >
-              {notificationsBusy ? '…' : notificationsEnabled ? 'On' : 'Off'}
+              {!notificationsAvailable ? 'N/A' : notificationsBusy ? '…' : notificationsEnabled ? 'On' : 'Off'}
             </Text>
           </View>
         </AnimatedButton>
@@ -439,7 +474,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               icon="mountainSnow"
               title="Champion"
               desc="30-day streak"
-              unlocked={progress.streak >= 30}
+              unlocked={(progress.longestStreak ?? progress.streak) >= 30}
               colors={colors}
             />
           </View>
@@ -508,8 +543,12 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       {/* Notification permission */}
       <AppModal
         visible={showNotificationsError}
-        title="Notifications are off"
-        message="Allow notifications in your device settings, then try again from Profile."
+        title={notificationsAvailable ? 'Notifications are off' : 'Use a development build'}
+        message={
+          notificationsAvailable
+            ? 'Allow notifications in your device settings, then try again from Profile.'
+            : 'Expo Go does not include the Android notification module. Install a development build or the Menya APK to use practice reminders.'
+        }
         type="warning"
         icon="bell"
         confirmText="OK"
@@ -571,24 +610,52 @@ const AchievementBadge: React.FC<{
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 24,
+  headerLevelPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    position: 'relative',
-    overflow: 'hidden',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  headerLevelText: { fontSize: 12, fontWeight: '800' },
+  profileCard: {
+    margin: 16,
+    marginBottom: 0,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
   },
   avatarWrapper: {
     position: 'relative',
+    marginBottom: 10,
+  },
+  avatarQuickActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
+  },
+  avatarQuickChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  avatarQuickChipText: {
+    fontSize: 11.5,
+    fontWeight: '800',
   },
   profilePhoto: {
     width: 80,
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.65)',
   },
   avatarEditBadge: {
     position: 'absolute',
@@ -600,7 +667,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
   nameRow: {
     flexDirection: 'row',
@@ -615,54 +681,38 @@ const styles = StyleSheet.create({
   nameInput: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#FFFFFF',
     borderBottomWidth: 2,
     paddingVertical: 4,
     minWidth: 150,
   },
   nameSaveBtn: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: 6,
-    borderRadius: 8,
+    padding: 7,
+    borderRadius: 9,
   },
   nameCancelBtn: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
     padding: 6,
-    borderRadius: 8,
+    borderRadius: 9,
+    borderWidth: 1,
   },
   userName: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#FFFFFF',
   },
   userEmail: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 10,
     marginTop: 4,
+    marginBottom: 2,
   },
-  levelBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginTop: 8,
-    borderWidth: 1,
-  },
-  levelText: { fontSize: 13, fontWeight: '800' },
   championBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.16)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     marginTop: 10,
     gap: 6,
   },
-  championText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  championText: { fontSize: 12, fontWeight: '700' },
   scroll: { flex: 1 },
   card: {
     margin: 16,

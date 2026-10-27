@@ -9,24 +9,13 @@ import { Text } from '../components/ui/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppIcon } from '../components/ui/AppIcon';
-
-const ONBOARDING = {
-  background: '#F5F8FA',
-  surface: '#FFFFFF',
-  ink: '#14212B',
-  muted: '#5C6B76',
-  border: '#D5E1E7',
-  primary: '#0B6E84',
-  primaryDark: '#085468',
-  primarySoft: '#E4F2F6',
-  white: '#FFFFFF',
-};
+import { useTheme } from '../theme/themeContext';
 
 const LANGUAGES = [
-  { id: 'en', code: 'EN', name: 'English', native: 'English', tint: '#D9EEF3' },
-  { id: 'fr', code: 'FR', name: 'French', native: 'Français', tint: '#F1ECFA' },
-  { id: 'rw', code: 'RW', name: 'Kinyarwanda', native: 'Ikinyarwanda', tint: '#E6F6EE' },
-  { id: 'sw', code: 'SW', name: 'Swahili', native: 'Kiswahili', tint: '#FBF1E3' },
+  { id: 'en', code: 'EN', name: 'English', native: 'English', tint: '#D9EEF3', color: '#0B6E84' },
+  { id: 'fr', code: 'FR', name: 'French', native: 'Français', tint: '#F1ECFA', color: '#7C5CBF' },
+  { id: 'rw', code: 'RW', name: 'Kinyarwanda', native: 'Ikinyarwanda', tint: '#E6F6EE', color: '#2F9E6E' },
+  { id: 'sw', code: 'SW', name: 'Swahili', native: 'Kiswahili', tint: '#FBF1E3', color: '#C9891C' },
 ];
 
 const WHAT_YOU_GET = [
@@ -53,15 +42,16 @@ interface OnboardingScreenProps {
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   const [selected, setSelected] = useState('en');
+  const { colors, isDark } = useTheme();
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <View style={styles.progressWrap}>
-        <View style={[styles.progressSegment, styles.progressComplete]} />
-        <View style={[styles.progressSegment, styles.progressComplete]} />
-        <View style={[styles.progressSegment, styles.progressInactive]} />
+        <View style={[styles.progressSegment, { backgroundColor: colors.primary }]} />
+        <View style={[styles.progressSegment, { backgroundColor: colors.primary }]} />
+        <View style={[styles.progressSegment, { backgroundColor: colors.border }]} />
       </View>
 
       <ScrollView
@@ -69,22 +59,22 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.eyebrow}>PERSONALIZE YOUR LEARNING</Text>
-        <Text style={styles.title}>What is your native language?</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.eyebrow, { color: colors.primary }]}>PERSONALIZE YOUR LEARNING</Text>
+        <Text style={[styles.title, { color: colors.text }]}>What is your native language?</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           We'll use this to make Menya feel right for you. You can change it later.
         </Text>
 
-        <Text style={styles.sectionTitle}>What you'll get</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>What you'll get</Text>
         <View style={styles.benefits}>
           {WHAT_YOU_GET.map((item) => (
             <View key={item.title} style={styles.benefitRow}>
-              <View style={styles.benefitIcon}>
-                <AppIcon name={item.icon} size={19} color={ONBOARDING.primary} />
+              <View style={[styles.benefitIcon, { backgroundColor: colors.primaryLight }]}>
+                <AppIcon name={item.icon} size={19} color={colors.primary} />
               </View>
               <View style={styles.benefitCopy}>
-                <Text style={styles.benefitTitle}>{item.title}</Text>
-                <Text style={styles.benefitBody}>{item.body}</Text>
+                <Text style={[styles.benefitTitle, { color: colors.text }]}>{item.title}</Text>
+                <Text style={[styles.benefitBody, { color: colors.textSecondary }]}>{item.body}</Text>
               </View>
             </View>
           ))}
@@ -98,7 +88,10 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 key={language.id}
                 style={[
                   styles.languageRow,
-                  isSelected && styles.languageRowSelected,
+                  {
+                    backgroundColor: isSelected ? colors.primaryLight : colors.card,
+                    borderColor: isSelected ? colors.primary : colors.border,
+                  },
                 ]}
                 onPress={() => setSelected(language.id)}
                 activeOpacity={0.75}
@@ -106,41 +99,57 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 accessibilityState={{ selected: isSelected, checked: isSelected }}
               >
                 <View style={[styles.languageBadge, { backgroundColor: language.tint }]}>
-                  <Text style={styles.languageCode}>{language.code}</Text>
+                  <Text style={[styles.languageCode, { color: language.color }]}>{language.code}</Text>
                 </View>
                 <View style={styles.languageCopy}>
-                  <Text style={styles.languageName}>{language.name}</Text>
-                  <Text style={styles.languageNative}>{language.native}</Text>
+                  <Text style={[styles.languageName, { color: colors.text }]}>{language.name}</Text>
+                  <Text style={[styles.languageNative, { color: colors.textSecondary }]}>
+                    {language.native}
+                  </Text>
                 </View>
                 <AppIcon
                   name={isSelected ? 'checkCircle' : 'circle'}
                   size={22}
-                  color={isSelected ? ONBOARDING.primary : ONBOARDING.border}
+                  color={isSelected ? colors.primary : colors.border}
                 />
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <Text style={styles.comingSoon}>More languages are coming soon.</Text>
+        <Text style={[styles.comingSoon, { color: colors.textMuted }]}>
+          More languages are coming soon.
+        </Text>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: colors.background, borderTopColor: colors.border },
+        ]}
+      >
         <TouchableOpacity
-          style={styles.skipButton}
+          style={[
+            styles.skipButton,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
           onPress={() => onComplete(null)}
           activeOpacity={0.75}
         >
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={[styles.skipText, { color: colors.text }]}>Skip</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.continueButton, !selected && styles.continueDisabled]}
+          style={[
+            styles.continueButton,
+            { backgroundColor: colors.primary },
+            !selected && styles.continueDisabled,
+          ]}
           onPress={() => onComplete(selected)}
           disabled={!selected}
           activeOpacity={0.85}
         >
           <Text style={styles.continueText}>Continue</Text>
-          <AppIcon name="arrowRight" size={19} color={ONBOARDING.white} />
+          <AppIcon name="arrowRight" size={19} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -150,7 +159,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: ONBOARDING.background,
   },
   progressWrap: {
     flexDirection: 'row',
@@ -164,12 +172,6 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
-  progressComplete: {
-    backgroundColor: ONBOARDING.primary,
-  },
-  progressInactive: {
-    backgroundColor: '#DCE5EA',
-  },
   scroll: {
     flex: 1,
   },
@@ -182,28 +184,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.5,
-    color: ONBOARDING.primary,
     marginBottom: 10,
   },
   title: {
     fontSize: 30,
     lineHeight: 37,
     fontWeight: '800',
-    color: ONBOARDING.ink,
     letterSpacing: -0.6,
     maxWidth: 340,
   },
   subtitle: {
     fontSize: 14,
     lineHeight: 21,
-    color: ONBOARDING.muted,
     marginTop: 10,
     maxWidth: 340,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: ONBOARDING.ink,
     marginTop: 28,
     marginBottom: 12,
   },
@@ -220,7 +218,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: ONBOARDING.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -230,12 +227,10 @@ const styles = StyleSheet.create({
   benefitTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: ONBOARDING.ink,
   },
   benefitBody: {
     fontSize: 12,
     lineHeight: 17,
-    color: ONBOARDING.muted,
     marginTop: 2,
   },
   languageList: {
@@ -248,14 +243,8 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: ONBOARDING.surface,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: ONBOARDING.border,
-  },
-  languageRowSelected: {
-    borderColor: ONBOARDING.primary,
-    backgroundColor: ONBOARDING.primarySoft,
   },
   languageBadge: {
     width: 42,
@@ -268,7 +257,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.5,
-    color: ONBOARDING.ink,
   },
   languageCopy: {
     flex: 1,
@@ -276,16 +264,13 @@ const styles = StyleSheet.create({
   languageName: {
     fontSize: 15,
     fontWeight: '700',
-    color: ONBOARDING.ink,
   },
   languageNative: {
     fontSize: 12,
-    color: ONBOARDING.muted,
     marginTop: 2,
   },
   comingSoon: {
     fontSize: 11.5,
-    color: ONBOARDING.muted,
     textAlign: 'center',
     marginTop: 16,
   },
@@ -296,29 +281,23 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E2EAEE',
-    backgroundColor: ONBOARDING.background,
   },
   skipButton: {
     height: 54,
     paddingHorizontal: 26,
     borderRadius: 27,
     borderWidth: 1.5,
-    borderColor: ONBOARDING.border,
-    backgroundColor: ONBOARDING.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   skipText: {
     fontSize: 15,
     fontWeight: '700',
-    color: ONBOARDING.ink,
   },
   continueButton: {
     flex: 1,
     height: 54,
     borderRadius: 27,
-    backgroundColor: ONBOARDING.primary,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -330,6 +309,6 @@ const styles = StyleSheet.create({
   continueText: {
     fontSize: 15,
     fontWeight: '800',
-    color: ONBOARDING.white,
+    color: '#FFFFFF',
   },
 });

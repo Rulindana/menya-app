@@ -4,15 +4,17 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
-  GoogleSans_400Regular,
-  GoogleSans_400Regular_Italic,
-  GoogleSans_500Medium,
-  GoogleSans_500Medium_Italic,
-  GoogleSans_600SemiBold,
-  GoogleSans_600SemiBold_Italic,
-  GoogleSans_700Bold,
-  GoogleSans_700Bold_Italic,
-} from '@expo-google-fonts/google-sans';
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_400Regular_Italic,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_500Medium_Italic,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_600SemiBold_Italic,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_700Bold_Italic,
+  PlusJakartaSans_800ExtraBold,
+  PlusJakartaSans_800ExtraBold_Italic,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { ThemeProvider, useTheme } from './src/theme/themeContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAppStore } from './src/store/useAppStore';
@@ -24,14 +26,16 @@ import { PermissionsScreen, shouldShowPermissions } from './src/screens/Permissi
 
 const AppContent = () => {
   const [fontsLoaded, fontError] = useFonts({
-    GoogleSans_400Regular,
-    GoogleSans_400Regular_Italic,
-    GoogleSans_500Medium,
-    GoogleSans_500Medium_Italic,
-    GoogleSans_600SemiBold,
-    GoogleSans_600SemiBold_Italic,
-    GoogleSans_700Bold,
-    GoogleSans_700Bold_Italic,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_400Regular_Italic,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_500Medium_Italic,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_600SemiBold_Italic,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_700Bold_Italic,
+    PlusJakartaSans_800ExtraBold,
+    PlusJakartaSans_800ExtraBold_Italic,
   });
   const loadFromStorage = useAppStore((s) => s.loadFromStorage);
   const isLoggedIn = useAppStore((s) => s.user.isLoggedIn);

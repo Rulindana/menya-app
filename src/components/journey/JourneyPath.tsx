@@ -13,11 +13,11 @@ import { useTheme } from '../../theme/themeContext';
 import { JourneySection } from '../../data/journey';
 import { Lesson, Unit } from '../../data/lessons';
 
-const NODE_SIZE = 64;
-const TROPHY_SIZE = 76;
-const NODE_GAP = 98;
-const TOP_PAD = 96;
-const BOTTOM_PAD = 66;
+const NODE_SIZE = 66;
+const TROPHY_SIZE = 78;
+const NODE_GAP = 114;
+const TOP_PAD = 102;
+const BOTTOM_PAD = 76;
 const OFFSETS = [0, 0.62, 0.24, -0.35, -0.78, -0.26, 0.48, 0.86, 0.32, -0.22, -0.66, 0.12, 0.72, 0.18];
 
 const getUnitIcon = (unitId: string) => {
@@ -129,10 +129,10 @@ export const UnitJourney: React.FC<{
     .join(' ');
 
   const unitHint = unitCompleted
-    ? 'Unit complete — tap a lesson to practice again.'
+    ? 'Unit complete — tap any lesson to review & practice again.'
     : unlocked
       ? currentLesson
-        ? `Next: ${currentLesson.title}`
+        ? `Up next: ${currentLesson.title} · 4 steps (Learn → Practice → Reinforce → Assess)`
         : 'Unit complete.'
       : `Complete Unit ${unitNumber - 1} to unlock this unit.`;
 
@@ -388,6 +388,18 @@ const JourneyNode: React.FC<{
           </View>
         )}
       </View>
+      <Text
+        style={[
+          styles.nodeLabel,
+          {
+            color: current ? colors.text : completed ? colors.textSecondary : colors.textMuted,
+            fontWeight: current ? '700' : '600',
+          },
+        ]}
+        numberOfLines={1}
+      >
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -531,6 +543,14 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   nodeLocked: { opacity: 0.62 },
+  nodeLabel: {
+    position: 'absolute',
+    top: NODE_SIZE + 5,
+    width: 136,
+    textAlign: 'center',
+    fontSize: 11,
+    letterSpacing: -0.1,
+  },
   pulseRing: {
     position: 'absolute',
     width: NODE_SIZE + 18,
@@ -552,11 +572,11 @@ const styles = StyleSheet.create({
   },
   startBubble: {
     position: 'absolute',
-    top: -42,
-    left: -12,
-    width: 88,
-    height: 31,
-    borderRadius: 16,
+    top: -44,
+    left: -15,
+    width: 96,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',

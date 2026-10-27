@@ -1,5 +1,8 @@
-import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import { initializeApp, FirebaseApp, getApps, getApp } from 'firebase/app';
+import * as firebaseAuthModule from 'firebase/auth';
+import { getAuth, initializeAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Firebase Configuration
@@ -18,17 +21,27 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 try {
-  app = initializeApp(firebaseConfig);
-  console.log('Firebase initialized successfully');
+  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 } catch (error) {
   console.warn('Firebase initialization error:', error);
-  // Don't crash — app works without Firebase
 }
 
-// Initialize services only if app was created
+// Initialize Auth with AsyncStorage persistence on React Native so sessions
+// survive app restarts; fall back to getAuth on web or fast-refresh.
 try {
   if (app) {
-    auth = getAuth(app);
+    const getReactNativePersistence = (firebaseAuthModule as any).getReactNativePersistence;
+    if (Platform.OS !== 'web' && typeof getReactNativePersistence === 'function') {
+      try {
+        auth = initializeAuth(app, {
+          persistence: getReactNativePersistence(AsyncStorage),
+        });
+      } catch {
+        auth = getAuth(app);
+      }
+    } else {
+      auth = getAuth(app);
+    }
   }
 } catch (error) {
   console.warn('Firebase Auth init error:', error);
@@ -44,6 +57,17 @@ try {
 
 export { auth, db };
 export default app;
+
+// Wait for Firebase Auth to finish hydrating its persisted session
+export const waitForAuthReady = async (): Promise<void> => {
+  try {
+    if (auth && typeof (auth as any).authStateReady === 'function') {
+      await (auth as any).authStateReady();
+    }
+  } catch {
+    // Ignore errors when offline or unconfigured
+  }
+};
 
 // Helper to check if Firebase is configured
 export const isFirebaseConfigured = (): boolean => {

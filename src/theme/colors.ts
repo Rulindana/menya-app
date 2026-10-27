@@ -1,5 +1,5 @@
 // Menya App — Rwanda flag colors theme
-import { GOOGLE_SANS } from './typography';
+import { APP_FONT, Typography } from './typography';
 
 export const Colors = {
   // Brand — deep teal with a muted gold accent
@@ -50,18 +50,12 @@ export const Colors = {
 };
 
 export const Fonts = {
-  regular: GOOGLE_SANS.regular,
-  medium: GOOGLE_SANS.medium,
-  semibold: GOOGLE_SANS.semibold,
-  bold: GOOGLE_SANS.bold,
-  size: {
-    xs: 11,
-    sm: 13,
-    md: 16,
-    lg: 20,
-    xl: 26,
-    xxl: 34,
-  },
+  regular: APP_FONT.regular,
+  medium: APP_FONT.medium,
+  semibold: APP_FONT.semibold,
+  bold: APP_FONT.bold,
+  extrabold: APP_FONT.extrabold,
+  size: Typography.size,
 };
 
 export const Radius = {

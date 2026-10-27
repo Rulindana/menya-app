@@ -1,5 +1,5 @@
 import { doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, collection, query, orderBy, limit } from 'firebase/firestore';
-import { db, auth } from './config';
+import { db, auth, waitForAuthReady } from './config';
 import { UserProfile, UserProgress } from '../store/useAppStore';
 
 // Check if user is authenticated with Firebase (including anonymous)
@@ -51,14 +51,23 @@ export const saveUserData = async (
     const existingDoc = await getDoc(userRef);
     const existingData = existingDoc.exists() ? existingDoc.data() as FirestoreUserData : null;
 
+    const longestStreak = Math.max(
+      progress.streak,
+      progress.longestStreak || 0,
+      existingData?.stats?.longestStreak || 0
+    );
+
     const userData: FirestoreUserData = {
       profile,
-      progress,
+      progress: {
+        ...progress,
+        longestStreak,
+      },
       certificate: certificate || existingData?.certificate || { earned: false },
       stats: {
         totalLessonsCompleted: progress.completedLessons.length,
         totalTimeSpent: existingData?.stats.totalTimeSpent || 0,
-        longestStreak: Math.max(progress.streak, existingData?.stats.longestStreak || 0),
+        longestStreak,
         totalXPEarned: progress.xp,
       },
       settings: existingData?.settings || {
@@ -160,16 +169,23 @@ export const savePushTokenToFirestore = async (
   }
 };
 
-// Update streak in Firestore
-export const updateStreakInFirestore = async (uid: string, streak: number, lastActiveDate: string): Promise<void> => {
+// Update streak in Firestore while preserving historical longestStreak
+export const updateStreakInFirestore = async (
+  uid: string,
+  streak: number,
+  lastActiveDate: string,
+  longestStreak?: number
+): Promise<void> => {
   if (!isAuthenticated(uid)) return;
   if (!db) return;
   try {
     const userRef = doc(db, 'users', uid);
+    const bestStreak = Math.max(streak, longestStreak ?? 0);
     await updateDoc(userRef, {
       'progress.streak': streak,
+      'progress.longestStreak': bestStreak,
       'progress.lastActiveDate': lastActiveDate,
-      'stats.longestStreak': streak,
+      'stats.longestStreak': bestStreak,
       'updatedAt': new Date().toISOString(),
     });
   } catch (error) {
@@ -275,22 +291,42 @@ export const updateLeaderboardEntry = async (
 export const subscribeToLeaderboard = (
   callback: (entries: LeaderboardEntry[]) => void
 ): (() => void) => {
-  if (!auth || auth.currentUser === null) {
+  if (!db || !auth) {
     callback([]);
     return () => {};
   }
-  if (!db) { callback([]); return () => {}; }
-  const q = query(collection(db, 'leaderboard'), orderBy('xp', 'desc'), limit(50));
-  return onSnapshot(
-    q,
-    (snap) => {
-      callback(snap.docs.map((d) => d.data() as LeaderboardEntry));
-    },
-    (error) => {
-      console.log('Leaderboard listener error:', error?.code || error?.message);
+
+  let innerUnsub: (() => void) | null = null;
+  let cancelled = false;
+
+  waitForAuthReady().then(() => {
+    if (cancelled) return;
+    if (!auth || auth.currentUser === null || !db) {
       callback([]);
+      return;
     }
-  );
+    const q = query(collection(db, 'leaderboard'), orderBy('xp', 'desc'), limit(50));
+    innerUnsub = onSnapshot(
+      q,
+      (snap) => {
+        if (!cancelled) {
+          callback(snap.docs.map((d) => d.data() as LeaderboardEntry));
+        }
+      },
+      (error) => {
+        console.log('Leaderboard listener error:', error?.code || error?.message);
+        if (!cancelled) callback([]);
+      }
+    );
+  });
+
+  return () => {
+    cancelled = true;
+    if (innerUnsub) {
+      innerUnsub();
+      innerUnsub = null;
+    }
+  };
 };
 
 // Update user profile

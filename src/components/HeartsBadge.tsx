@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from './ui/AppText';
 import { AppIcon } from './ui/AppIcon';
 import { MAX_HEARTS, useAppStore } from '../store/useAppStore';
+import { useTheme } from '../theme/themeContext';
 
 interface HeartsBadgeProps {
   onPress: () => void;
@@ -11,6 +12,7 @@ interface HeartsBadgeProps {
 export const HeartsBadge: React.FC<HeartsBadgeProps> = ({ onPress }) => {
   const hearts = useAppStore((s) => s.progress.hearts);
   const nextHeartAt = useAppStore((s) => s.progress.nextHeartAt);
+  const { colors } = useTheme();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -30,7 +32,10 @@ export const HeartsBadge: React.FC<HeartsBadgeProps> = ({ onPress }) => {
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
-      style={styles.badge}
+      style={[
+        styles.badge,
+        { backgroundColor: colors.background, borderColor: colors.border },
+      ]}
       accessibilityRole="button"
       accessibilityLabel={`Hearts, ${hearts} of ${MAX_HEARTS}`}
     >
@@ -38,11 +43,11 @@ export const HeartsBadge: React.FC<HeartsBadgeProps> = ({ onPress }) => {
         <AppIcon
           name="heart"
           size={16}
-          color={hearts > 0 ? '#D64545' : 'rgba(255,255,255,0.55)'}
+          color={hearts > 0 ? colors.heartRed : colors.textMuted}
         />
       </View>
-      <Text style={styles.count}>{hearts}</Text>
-      {timerLabel && <Text style={styles.timer}>{timerLabel}</Text>}
+      <Text style={[styles.count, { color: colors.text }]}>{hearts}</Text>
+      {timerLabel && <Text style={[styles.timer, { color: colors.textMuted }]}>{timerLabel}</Text>}
     </TouchableOpacity>
   );
 };
@@ -55,7 +60,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
   },
   iconWrap: {
     width: 16,
@@ -64,13 +69,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   count: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   timer: {
     fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.72)',
+    fontWeight: '600',
   },
 });

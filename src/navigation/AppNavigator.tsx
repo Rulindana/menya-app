@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AppIcon } from '../components/ui/AppIcon';
+import { AvatarBadge } from '../components/AvatarPicker';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { LessonScreen } from '../screens/LessonScreen';
@@ -34,7 +35,7 @@ const TabIcon: React.FC<{ icon: string; color: string; focused: boolean; label: 
 }) => (
   <View style={tabStyles.tabItem}>
     <View style={[tabStyles.iconPill, focused && { backgroundColor: color + '14' }]}>
-      <AppIcon name={icon} size={21} color={color} strokeWidth={focused ? 2.4 : 1.9} />
+      <AppIcon name={icon} size={26} color={color} strokeWidth={focused ? 2.5 : 2} />
     </View>
     <Text style={[tabStyles.tabLabel, { color }]} numberOfLines={1}>
       {label}
@@ -44,6 +45,8 @@ const TabIcon: React.FC<{ icon: string; color: string; focused: boolean; label: 
 
 const MainTabs = () => {
   const { colors } = useTheme();
+  const userAvatar = useAppStore((s) => s.user.avatar);
+  const userPhotoUri = useAppStore((s) => s.user.photoUri);
 
   return (
     <Tab.Navigator
@@ -53,8 +56,8 @@ const MainTabs = () => {
           backgroundColor: colors.tabBar,
           borderTopColor: colors.tabBarBorder,
           borderTopWidth: 1,
-          height: 70,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+          height: 76,
+          paddingBottom: Platform.OS === 'ios' ? 22 : 10,
           paddingTop: 6,
           elevation: 0,
           shadowColor: '#14212B',
@@ -108,7 +111,14 @@ const MainTabs = () => {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="user" color={color} focused={focused} label="Profile" />
+            <View style={tabStyles.tabItem}>
+              <View style={[tabStyles.iconPill, focused && { backgroundColor: color + '14' }]}>
+                <AvatarBadge id={userAvatar} photoUri={userPhotoUri} size={26} />
+              </View>
+              <Text style={[tabStyles.tabLabel, { color }]} numberOfLines={1}>
+                Profile
+              </Text>
+            </View>
           ),
         }}
       />
@@ -126,13 +136,13 @@ const tabStyles = StyleSheet.create({
   iconPill: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
-    height: 30,
-    borderRadius: 15,
+    width: 50,
+    height: 34,
+    borderRadius: 17,
     marginBottom: 2,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
     marginTop: 1,
   },

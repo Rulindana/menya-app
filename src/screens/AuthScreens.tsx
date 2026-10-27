@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -32,43 +32,51 @@ import {
   GOOGLE_WEB_CLIENT_ID,
 } from '../firebase/config';
 import { loadUserData } from '../firebase/syncService';
+import { useTheme } from '../theme/themeContext';
 
 const PRIVACY_URL = 'https://sites.google.com/view/menya-ikinyarwanda';
 
-const AUTH = {
-  background: '#EAF3F7',
-  surface: '#FFFFFF',
-  ink: '#14212B',
-  muted: '#5C6B76',
-  border: '#CBDCE4',
-  primary: '#0B6E84',
-  primaryDark: '#085468',
-  primarySoft: '#D9EEF3',
-  error: '#D64545',
-  errorSoft: '#FCEAEA',
-  inputBg: '#F7FAFB',
+const createAuthPalette = (colors: any, isDark: boolean) => ({
+  background: colors.surface,
+  surface: colors.surface,
+  ink: colors.text,
+  muted: colors.textSecondary,
+  border: colors.border,
+  primary: isDark ? colors.primaryDark : colors.primary,
+  primaryDark: colors.primaryDark,
+  primarySoft: colors.primaryLight,
+  error: colors.error,
+  errorSoft: colors.error + '18',
+  inputBg: colors.surface,
   white: '#FFFFFF',
-};
+});
 
 let GoogleSignin: any = null;
 let googleStatusCodes: any = null;
-try {
-  const googleSigninModule = require('@react-native-google-signin/google-signin');
-  GoogleSignin = googleSigninModule.GoogleSignin;
-  googleStatusCodes = googleSigninModule.statusCodes;
-  if (GoogleSignin) {
-    if (Platform.OS !== 'web') {
+let googleConfigured = false;
+
+const ensureGoogleSigninConfigured = () => {
+  if (Platform.OS === 'web') return null;
+  try {
+    if (!GoogleSignin) {
+      const googleSigninModule = require('@react-native-google-signin/google-signin');
+      GoogleSignin = googleSigninModule.GoogleSignin;
+      googleStatusCodes = googleSigninModule.statusCodes;
+    }
+    if (GoogleSignin && !googleConfigured) {
       GoogleSignin.configure({
         webClientId: GOOGLE_WEB_CLIENT_ID,
         offlineAccess: true,
       });
-    } else {
-      GoogleSignin = null;
+      googleConfigured = true;
     }
+  } catch {
+    // Google Sign-In native module is unavailable in Expo Go.
   }
-} catch {
-  // Google Sign-In is unavailable in Expo Go and on web.
-}
+  return GoogleSignin;
+};
+
+ensureGoogleSigninConfigured();
 
 const getAuthErrorMessage = (code: string): string => {
   if (code.includes('email-already-in-use')) return 'An account already exists with this email. Try logging in instead.';
@@ -100,12 +108,18 @@ const performGoogleSignIn = async () => {
     return signInWithPopup(firebaseAuth, new GoogleAuthProvider());
   }
 
-  if (!GoogleSignin) {
+  const googleClient = ensureGoogleSigninConfigured();
+  if (!googleClient) {
     throw new Error('GOOGLE_UNAVAILABLE');
   }
 
-  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-  const result = await GoogleSignin.signIn();
+  await googleClient.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  try {
+    await googleClient.signOut();
+  } catch {
+    // Ignore signOut errors prior to fresh account selection
+  }
+  const result = await googleClient.signIn();
   const idToken = result?.data?.idToken ?? result?.idToken ?? null;
   if (!idToken) throw new Error('NO_ID_TOKEN');
   if (!firebaseAuth) throw new Error('FIREBASE_UNAVAILABLE');
@@ -114,20 +128,49 @@ const performGoogleSignIn = async () => {
   return signInWithCredential(firebaseAuth, credential);
 };
 
-const LogoMark: React.FC = () => (
-  <View style={styles.logoRow}>
-    <View style={styles.logoBadge}>
-      <AppIcon name="graduationCap" size={18} color={AUTH.white} />
+const logoStyles = StyleSheet.create({
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  logoBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoText: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 2.4,
+  },
+});
+
+const LogoMark: React.FC = () => {
+  const { colors, isDark } = useTheme();
+  const palette = createAuthPalette(colors, isDark);
+
+  return (
+    <View style={logoStyles.logoRow}>
+      <View style={[logoStyles.logoBadge, { backgroundColor: palette.primary }]}>
+        <AppIcon name="graduationCap" size={18} color={palette.white} />
+      </View>
+      <Text style={[logoStyles.logoText, { color: palette.ink }]}>MENYA</Text>
     </View>
-    <Text style={styles.logoText}>MENYA</Text>
-  </View>
-);
+  );
+};
 
 interface AuthScreenProps {
   navigation: any;
 }
 
 export const WelcomeScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
+  const { colors, isDark } = useTheme();
+  const palette = createAuthPalette(colors, isDark);
+  const styles = useMemo(() => createStyles(palette), [colors, isDark]);
   const setUser = useAppStore((s) => s.setUser);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [error, setError] = useState('');
@@ -143,10 +186,10 @@ export const WelcomeScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
       setUser({
         uid: userCredential.user.uid,
         email: userCredential.user.email,
-        displayName: userCredential.user.displayName || 'Learner',
-        age: null,
-        avatar: 'gorilla',
-        photoUri: null,
+        displayName: profile?.displayName || userCredential.user.displayName || 'Learner',
+        age: profile?.age ?? null,
+        avatar: profile?.avatar ?? 'gorilla',
+        photoUri: profile?.photoUri ?? userCredential.user.photoURL ?? null,
         isLoggedIn: true,
         nativeLanguage: profile?.nativeLanguage ?? null,
         onboardingCompleted: profile?.onboardingCompleted ?? false,
@@ -154,6 +197,7 @@ export const WelcomeScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
     } catch (e: any) {
       if (
         e?.code === googleStatusCodes?.SIGN_IN_CANCELLED ||
+        e?.code === googleStatusCodes?.IN_PROGRESS ||
         e?.code === 'auth/popup-closed-by-user' ||
         e?.code === 'auth/cancelled-popup-request'
       ) {
@@ -164,7 +208,7 @@ export const WelcomeScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
       } else if (e?.message === 'SERVICE_UNAVAILABLE') {
         setError('Sign-in is unavailable right now. Please use email.');
       } else if (e?.message === 'GOOGLE_UNAVAILABLE') {
-        setError('Google sign-in is unavailable in this build. Please use email.');
+        setError('Google sign-in requires the full app build (unavailable in Expo Go). Please use email.');
       } else {
         setError('Google sign-in failed. Please use email instead.');
       }
@@ -175,7 +219,7 @@ export const WelcomeScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScrollView
         contentContainerStyle={styles.welcomeContent}
         showsVerticalScrollIndicator={false}
@@ -199,36 +243,34 @@ export const WelcomeScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
 
         {!!error && (
           <View style={styles.errorBanner}>
-            <AppIcon name="circleAlert" size={16} color={AUTH.error} />
+            <AppIcon name="circleAlert" size={16} color={palette.error} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
         <View style={styles.authButtons}>
-          {(Platform.OS === 'web' || GoogleSignin) && (
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={handleGoogleSignIn}
-              activeOpacity={0.8}
-              disabled={loadingGoogle}
-            >
-              {loadingGoogle ? (
-                <ActivityIndicator size="small" color={AUTH.primary} />
-              ) : (
-                <>
-                  <GoogleMark size={20} />
-                  <Text style={styles.socialButtonText}>Continue with Google</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={handleGoogleSignIn}
+            activeOpacity={0.8}
+            disabled={loadingGoogle}
+          >
+            {loadingGoogle ? (
+              <ActivityIndicator size="small" color={palette.primary} />
+            ) : (
+              <>
+                <GoogleMark size={20} />
+                <Text style={styles.socialButtonText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => navigation.navigate('EmailAuth', { mode: 'signup' })}
             activeOpacity={0.85}
           >
-            <AppIcon name="mail" size={19} color={AUTH.white} />
+            <AppIcon name="mail" size={19} color={palette.white} />
             <Text style={styles.primaryButtonText}>Continue with email</Text>
           </TouchableOpacity>
         </View>
@@ -260,6 +302,9 @@ interface EmailAuthScreenProps extends AuthScreenProps {
 }
 
 export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, route }) => {
+  const { colors, isDark } = useTheme();
+  const palette = createAuthPalette(colors, isDark);
+  const styles = useMemo(() => createStyles(palette), [colors, isDark]);
   const initialMode = route?.params?.mode === 'login' ? 'login' : 'signup';
   const [mode, setMode] = useState<'signup' | 'login'>(initialMode);
   const [name, setName] = useState('');
@@ -344,7 +389,7 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
         setUser({
           uid: userCredential.user.uid,
           email: userCredential.user.email || email.trim(),
-          displayName: userCredential.user.displayName || email.split('@')[0],
+          displayName: profile?.displayName || userCredential.user.displayName || email.split('@')[0],
           age: profile?.age ?? null,
           avatar: profile?.avatar ?? 'gorilla',
           photoUri: profile?.photoUri ?? null,
@@ -371,10 +416,10 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
       setUser({
         uid: userCredential.user.uid,
         email: userCredential.user.email,
-        displayName: userCredential.user.displayName || 'Learner',
+        displayName: profile?.displayName || userCredential.user.displayName || 'Learner',
         age: profile?.age ?? null,
         avatar: profile?.avatar ?? 'gorilla',
-        photoUri: profile?.photoUri ?? null,
+        photoUri: profile?.photoUri ?? userCredential.user.photoURL ?? null,
         isLoggedIn: true,
         nativeLanguage: profile?.nativeLanguage ?? null,
         onboardingCompleted: profile?.onboardingCompleted ?? false,
@@ -382,6 +427,7 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
     } catch (e: any) {
       if (
         e?.code === googleStatusCodes?.SIGN_IN_CANCELLED ||
+        e?.code === googleStatusCodes?.IN_PROGRESS ||
         e?.code === 'auth/popup-closed-by-user' ||
         e?.code === 'auth/cancelled-popup-request'
       ) {
@@ -392,7 +438,7 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
       } else if (e?.message === 'SERVICE_UNAVAILABLE') {
         setError('Sign-in is unavailable right now. Please use email.');
       } else if (e?.message === 'GOOGLE_UNAVAILABLE') {
-        setError('Google sign-in is unavailable in this build. Please use email.');
+        setError('Google sign-in requires the full app build (unavailable in Expo Go). Please use email.');
       } else {
         setError('Google sign-in failed. Please use email instead.');
       }
@@ -403,7 +449,7 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -420,13 +466,13 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
               activeOpacity={0.7}
               accessibilityLabel="Go back"
             >
-              <AppIcon name="chevronLeft" size={22} color={AUTH.ink} />
+              <AppIcon name="chevronLeft" size={22} color={palette.ink} />
             </TouchableOpacity>
             <LogoMark />
             <View style={styles.headerSpacer} />
           </View>
 
-          <View style={styles.formCard}>
+          <View style={styles.formContent}>
             <Text style={styles.formTitle}>
               {isSignup ? 'Create your account' : 'Welcome back'}
             </Text>
@@ -438,7 +484,7 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
 
             {!!error && (
               <View style={styles.errorBanner}>
-                <AppIcon name="circleAlert" size={16} color={AUTH.error} />
+                <AppIcon name="circleAlert" size={16} color={palette.error} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
@@ -447,13 +493,13 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>Full name</Text>
                 <View style={styles.inputWrap}>
-                  <AppIcon name="user" size={18} color={AUTH.muted} />
+                  <AppIcon name="user" size={18} color={palette.muted} />
                   <TextInput
                     style={styles.input}
                     value={name}
                     onChangeText={setName}
                     placeholder="Your name"
-                    placeholderTextColor="#8A99A5"
+                    placeholderTextColor={palette.muted}
                     autoCapitalize="words"
                     autoComplete="name"
                     returnKeyType="next"
@@ -465,13 +511,13 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Email</Text>
               <View style={styles.inputWrap}>
-                <AppIcon name="mail" size={18} color={AUTH.muted} />
+                <AppIcon name="mail" size={18} color={palette.muted} />
                 <TextInput
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
                   placeholder="you@example.com"
-                  placeholderTextColor="#8A99A5"
+                  placeholderTextColor={palette.muted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
@@ -487,13 +533,13 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
                   <Text style={styles.optionalLabel}>Optional</Text>
                 </View>
                 <View style={styles.inputWrap}>
-                  <AppIcon name="calendar" size={18} color={AUTH.muted} />
+                  <AppIcon name="calendar" size={18} color={palette.muted} />
                   <TextInput
                     style={styles.input}
                     value={age}
                     onChangeText={setAge}
                     placeholder="e.g. 24"
-                    placeholderTextColor="#8A99A5"
+                    placeholderTextColor={palette.muted}
                     keyboardType="number-pad"
                     returnKeyType="next"
                   />
@@ -504,13 +550,13 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Password</Text>
               <View style={styles.inputWrap}>
-                <AppIcon name="lock" size={18} color={AUTH.muted} />
+                <AppIcon name="lock" size={18} color={palette.muted} />
                 <TextInput
                   style={styles.input}
                   value={password}
                   onChangeText={setPassword}
                   placeholder="At least 6 characters"
-                  placeholderTextColor="#8A99A5"
+                  placeholderTextColor={palette.muted}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoComplete={isSignup ? 'new-password' : 'current-password'}
@@ -525,7 +571,7 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
                   <AppIcon
                     name={showPassword ? 'eyeOff' : 'eye'}
                     size={18}
-                    color={AUTH.muted}
+                    color={palette.muted}
                   />
                 </TouchableOpacity>
               </View>
@@ -538,41 +584,37 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
               activeOpacity={0.85}
             >
               {loading ? (
-                <ActivityIndicator size="small" color={AUTH.white} />
+                <ActivityIndicator size="small" color={palette.white} />
               ) : (
                 <>
                   <Text style={styles.primaryButtonText}>
                     {isSignup ? 'Create account' : 'Log in'}
                   </Text>
-                  <AppIcon name="arrowRight" size={19} color={AUTH.white} />
+                  <AppIcon name="arrowRight" size={19} color={palette.white} />
                 </>
               )}
             </TouchableOpacity>
 
-            {(Platform.OS === 'web' || GoogleSignin) && (
-              <>
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-                <TouchableOpacity
-                  style={styles.socialButton}
-                  onPress={handleGoogleSignIn}
-                  activeOpacity={0.8}
-                  disabled={loadingGoogle}
-                >
-                  {loadingGoogle ? (
-                    <ActivityIndicator size="small" color={AUTH.primary} />
-                  ) : (
-                    <>
-                      <GoogleMark size={20} />
-                      <Text style={styles.socialButtonText}>Continue with Google</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </>
-            )}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={handleGoogleSignIn}
+              activeOpacity={0.8}
+              disabled={loadingGoogle}
+            >
+              {loadingGoogle ? (
+                <ActivityIndicator size="small" color={palette.primary} />
+              ) : (
+                <>
+                  <GoogleMark size={20} />
+                  <Text style={styles.socialButtonText}>Continue with Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.switchLink}
@@ -601,10 +643,11 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ navigation, ro
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (palette: any) =>
+  StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: AUTH.background,
+    backgroundColor: palette.background,
   },
   flex: {
     flex: 1,
@@ -614,26 +657,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 20,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  logoBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    backgroundColor: AUTH.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 2.4,
-    color: AUTH.ink,
   },
   mascotStage: {
     alignItems: 'center',
@@ -647,7 +670,7 @@ const styles = StyleSheet.create({
     width: 226,
     height: 226,
     borderRadius: 113,
-    backgroundColor: '#DFEDF2',
+    backgroundColor: palette.primarySoft,
     zIndex: 0,
   },
   mascotArt: {
@@ -657,17 +680,17 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 37,
     fontWeight: '800',
-    color: AUTH.ink,
+    color: palette.ink,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
   welcomeTitleAccent: {
-    color: AUTH.primary,
+    color: palette.primary,
   },
   welcomeSubtitle: {
     fontSize: 14.5,
     lineHeight: 22,
-    color: AUTH.muted,
+    color: palette.muted,
     textAlign: 'center',
     marginTop: 12,
     marginBottom: 22,
@@ -677,7 +700,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: AUTH.errorSoft,
+    backgroundColor: palette.errorSoft,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -685,7 +708,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     flex: 1,
-    color: AUTH.error,
+    color: palette.error,
     fontSize: 12.5,
     lineHeight: 18,
     fontWeight: '600',
@@ -697,8 +720,8 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 27,
     borderWidth: 1.5,
-    borderColor: AUTH.border,
-    backgroundColor: AUTH.surface,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -707,12 +730,12 @@ const styles = StyleSheet.create({
   socialButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: AUTH.ink,
+    color: palette.ink,
   },
   primaryButton: {
     height: 54,
     borderRadius: 27,
-    backgroundColor: AUTH.primary,
+    backgroundColor: palette.primary,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -721,7 +744,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 15,
     fontWeight: '800',
-    color: AUTH.white,
+    color: palette.white,
   },
   buttonDisabled: {
     opacity: 0.65,
@@ -729,13 +752,13 @@ const styles = StyleSheet.create({
   termsText: {
     fontSize: 11.5,
     lineHeight: 17,
-    color: AUTH.muted,
+    color: palette.muted,
     textAlign: 'center',
     marginTop: 18,
     paddingHorizontal: 10,
   },
   termsLink: {
-    color: AUTH.primary,
+    color: palette.primary,
     fontWeight: '700',
     textDecorationLine: 'underline',
   },
@@ -746,17 +769,18 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: 13.5,
-    color: AUTH.muted,
+    color: palette.muted,
     textAlign: 'center',
   },
   loginHighlight: {
-    color: AUTH.primary,
+    color: palette.primary,
     fontWeight: '800',
   },
   emailContent: {
     flexGrow: 1,
+    justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 16,
     paddingBottom: 28,
   },
   emailHeader: {
@@ -769,37 +793,30 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: AUTH.surface,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: AUTH.border,
+    borderColor: palette.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerSpacer: {
     width: 40,
   },
-  formCard: {
-    backgroundColor: AUTH.surface,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: AUTH.border,
-    padding: 20,
-    shadowColor: AUTH.ink,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 2,
+  formContent: {
+    width: '100%',
+    maxWidth: 380,
+    alignSelf: 'center',
   },
   formTitle: {
     fontSize: 25,
     fontWeight: '800',
-    color: AUTH.ink,
+    color: palette.ink,
     letterSpacing: -0.4,
   },
   formSubtitle: {
     fontSize: 13.5,
     lineHeight: 20,
-    color: AUTH.muted,
+    color: palette.muted,
     marginTop: 6,
     marginBottom: 20,
   },
@@ -809,7 +826,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: AUTH.ink,
+    color: palette.ink,
     marginBottom: 7,
     marginLeft: 2,
   },
@@ -821,7 +838,7 @@ const styles = StyleSheet.create({
   optionalLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: AUTH.muted,
+    color: palette.muted,
     marginBottom: 7,
   },
   inputWrap: {
@@ -831,14 +848,14 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: AUTH.border,
-    backgroundColor: AUTH.inputBg,
+    borderColor: palette.border,
+    backgroundColor: palette.inputBg,
     paddingHorizontal: 14,
   },
   input: {
     flex: 1,
     fontSize: 15,
-    color: AUTH.ink,
+    color: palette.ink,
     paddingVertical: 0,
   },
   eyeButton: {
@@ -853,11 +870,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: AUTH.border,
+    backgroundColor: palette.border,
   },
   dividerText: {
     fontSize: 12,
-    color: AUTH.muted,
+    color: palette.muted,
   },
   switchLink: {
     alignItems: 'center',

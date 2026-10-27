@@ -6,9 +6,11 @@ import {
   Animated,
   Dimensions,
   Image,
+  ScrollView,
 } from 'react-native';
 import { Text } from '../components/ui/AppText';
 import { AppIcon } from '../components/ui/AppIcon';
+import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { useTheme } from '../theme/themeContext';
 import { AppModal } from '../components/AppModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -103,16 +105,20 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   // ── No expo-camera ──
   if (!CameraView) {
     return (
-      <View style={styles.bg}>
+      <View style={[styles.bg, { backgroundColor: colors.background }]}>
+        <ScreenHeader
+          onBack={() => navigation.goBack()}
+          title="QR Scanner"
+          subtitle="Verify a Menya certificate"
+        />
         <View style={styles.errorContainer}>
-          <View style={styles.errorIconWrap}><AppIcon name="camera" size={30} color="#FFFFFF" /></View>
-          <Text style={styles.errorTitle}>Kamera ntiboneka</Text>
-          <Text style={styles.errorMsg}>
+          <View style={[styles.errorIconWrap, { backgroundColor: colors.primaryLight }]}>
+            <AppIcon name="camera" size={30} color={colors.primary} />
+          </View>
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Kamera ntiboneka</Text>
+          <Text style={[styles.errorMsg, { color: colors.textSecondary }]}>
             Serivisi ya kamera ntabwo yashyizwe ahazaza. Ongera ubike application.
           </Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtnText}>← Subira</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -121,18 +127,22 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   // ── No permission ──
   if (!permission?.granted) {
     return (
-      <View style={styles.bg}>
+      <View style={[styles.bg, { backgroundColor: colors.background }]}>
+        <ScreenHeader
+          onBack={() => navigation.goBack()}
+          title="QR Scanner"
+          subtitle="Camera access needed"
+        />
         <View style={styles.errorContainer}>
-          <View style={styles.errorIconWrap}><AppIcon name="lock" size={30} color="#FFFFFF" /></View>
-          <Text style={styles.errorTitle}>Uburenganzira bwa Kamera</Text>
-          <Text style={styles.errorMsg}>
+          <View style={[styles.errorIconWrap, { backgroundColor: colors.primaryLight }]}>
+            <AppIcon name="lock" size={30} color={colors.primary} />
+          </View>
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Uburenganzira bwa Kamera</Text>
+          <Text style={[styles.errorMsg, { color: colors.textSecondary }]}>
             Tugusaba uburenganzira bwo gukoresha kamera kugira ngo uscanye QR code.
           </Text>
-          <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
+          <TouchableOpacity style={[styles.permBtn, { backgroundColor: colors.primary }]} onPress={requestPermission}>
             <Text style={styles.permBtnText}>Emeza Uburenganzira</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.backBtn, { marginTop: 12 }]} onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtnText}>← Subira</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -142,49 +152,66 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   // ── Certificate result ──
   if (certData) {
     return (
-      <View style={styles.bg}>
-        <View style={styles.resultContainer}>
-          <View style={styles.resultTitleRow}><AppIcon name="checkCircle" size={24} color="#4CC38A" /><Text style={styles.resultTitle}>Impamyabumenyi Nyayo!</Text></View>
-          <Text style={styles.resultSubtitle}>Valid Menya Certificate</Text>
+      <View style={[styles.bg, { backgroundColor: colors.background }]}>
+        <ScreenHeader
+          onBack={() => navigation.goBack()}
+          title="Certificate verified"
+          subtitle="Valid Menya certificate"
+          right={
+            <View style={[styles.verifiedPill, { backgroundColor: colors.success + '16' }]}>
+              <AppIcon name="shield" size={13} color={colors.success} />
+              <Text style={[styles.verifiedPillText, { color: colors.success }]}>Verified</Text>
+            </View>
+          }
+        />
+        <ScrollView contentContainerStyle={styles.resultContainer} showsVerticalScrollIndicator={false}>
+          <View style={styles.resultTitleRow}>
+            <AppIcon name="checkCircle" size={24} color={colors.success} />
+            <Text style={[styles.resultTitle, { color: colors.text }]}>Impamyabumenyi Nyayo!</Text>
+          </View>
+          <Text style={[styles.resultSubtitle, { color: colors.textSecondary }]}>
+            Valid Menya Certificate
+          </Text>
 
           {/* Profile photo */}
           {certData.photoUri ? (
             <Image
               source={{ uri: certData.photoUri }}
-              style={styles.resultPhoto}
+              style={[styles.resultPhoto, { borderColor: colors.secondary }]}
             />
           ) : (
-            <View style={[styles.resultPhoto, styles.resultPhotoPlaceholder]}>
-              <AppIcon name="user" size={48} color="rgba(255,255,255,0.5)" />
+            <View style={[styles.resultPhoto, styles.resultPhotoPlaceholder, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <AppIcon name="user" size={48} color={colors.textMuted} />
               {certData.hasPhoto && (
-                <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
+                <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 4 }}>
                   Photo on this device only
                 </Text>
               )}
             </View>
           )}
 
-          <View style={styles.resultCard}>
+          <View style={[styles.resultCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Row label="Amazina" value={certData.name} />
             <Row label="Imyaka / Age" value={`${certData.age} years`} />
             <Row label="Certificate ID" value={certData.certId} mono />
             <Row label="Itariki / Date" value={certData.date} />
           </View>
 
-          <View style={styles.verifiedBadge}>
-            <View style={styles.verifiedRow}><AppIcon name="shield" size={14} color="#2F9E6E" /><Text style={styles.verifiedText}>Verified by Menya App</Text></View>
+          <View style={[styles.verifiedBadge, { backgroundColor: colors.success + '12', borderColor: colors.success + '44' }]}>
+            <View style={styles.verifiedRow}>
+              <AppIcon name="shield" size={14} color={colors.success} />
+              <Text style={[styles.verifiedText, { color: colors.success }]}>Verified by Menya App</Text>
+            </View>
           </View>
 
           <TouchableOpacity
-            style={styles.scanAgainBtn}
+            style={[styles.scanAgainBtn, { backgroundColor: colors.primary }]}
             onPress={() => { setCertData(null); setScanned(false); }}
           >
-            <AppIcon name="refresh" size={16} color="#FFFFFF" /><Text style={styles.scanAgainText}>Scan Another</Text>
+            <AppIcon name="refresh" size={16} color="#FFFFFF" />
+            <Text style={styles.scanAgainText}>Scan Another</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtnText}>← Subira</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -245,12 +272,24 @@ export const QRScannerScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   );
 };
 
-const Row: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => (
-  <View style={styles.row}>
-    <Text style={styles.rowLabel}>{label}</Text>
-    <Text style={[styles.rowValue, mono && styles.rowMono]}>{value}</Text>
-  </View>
-);
+const Row: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.row}>
+      <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text
+        style={[
+          styles.rowValue,
+          { color: colors.text },
+          mono && styles.rowMono,
+          mono && { color: colors.secondary },
+        ]}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+};
 
 const CORNER_SIZE = 22;
 const CORNER_WIDTH = 3;
@@ -315,61 +354,68 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 18,
   },
-  errorTitle: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', marginBottom: 10 },
-  errorMsg: { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 22, marginBottom: 24 },
-  permBtn: { backgroundColor: '#0B6E84', paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12 },
+  errorTitle: { fontSize: 20, fontWeight: '900', marginBottom: 10 },
+  errorMsg: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  permBtn: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12 },
   permBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
-  backBtn: { backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10, marginTop: 8 },
-  backBtnText: { color: '#FFFFFF', fontWeight: '700' },
 
   // Result
-  resultContainer: { flex: 1, alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 },
+  verifiedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  verifiedPillText: { fontSize: 11, fontWeight: '800' },
+  resultContainer: {
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+  },
   resultTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  resultTitle: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
-  resultSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 20, fontStyle: 'italic' },
+  resultTitle: { fontSize: 22, fontWeight: '800' },
+  resultSubtitle: { fontSize: 13, marginBottom: 20, fontStyle: 'italic' },
   resultPhoto: {
     width: 110,
     height: 110,
     borderRadius: 55,
     borderWidth: 3,
-    borderColor: '#C9A84C',
     marginBottom: 20,
   },
-  resultPhotoPlaceholder: { backgroundColor: '#1a2a4a', alignItems: 'center', justifyContent: 'center' },
+  resultPhotoPlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   resultCard: {
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16,
+    borderWidth: 1,
     padding: 16,
     marginBottom: 16,
     gap: 12,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rowLabel: { fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
-  rowValue: { fontSize: 14, color: '#FFFFFF', fontWeight: '700', maxWidth: '60%', textAlign: 'right' },
-  rowMono: { fontSize: 11, fontFamily: 'monospace', color: '#D9A441' },
+  rowLabel: { fontSize: 13, fontWeight: '600' },
+  rowValue: { fontSize: 14, fontWeight: '700', maxWidth: '60%', textAlign: 'right' },
+  rowMono: { fontSize: 11, fontFamily: 'monospace' },
   verifiedBadge: {
-    backgroundColor: '#0B6E8433',
     borderWidth: 1,
-    borderColor: '#0B6E84',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginBottom: 20,
   },
   verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  verifiedText: { color: '#2F9E6E', fontWeight: '800', fontSize: 13 },
+  verifiedText: { fontWeight: '800', fontSize: 13 },
   scanAgainBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: '#0B6E84',
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 12,

@@ -49,6 +49,7 @@ ios/*.xcworkspace/xcuserdata/
 # ─── Environment / secrets ───────────────────────────────────────────────────
 .env
 .env.*
+!.env.example
 .env.local
 .env.*.local
 google-services.json
