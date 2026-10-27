@@ -1,0 +1,29 @@
+name: Create Development Builds
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  android_development_build:
+    name: Build Android development build
+    type: build
+    params:
+      platform: android
+      profile: development
+
+  ios_simulator_development_build:
+    name: Build iOS simulator development build
+    type: build
+    params:
+      platform: ios
+      profile: development-simulator
+
+  ios_device_development_build:
+    name: Build iOS device development build
+    type: build
+    params:
+      platform: ios
+      profile: development

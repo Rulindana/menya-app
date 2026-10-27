@@ -1,0 +1,74 @@
+name: Development Builds (Android & iOS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Target platform for EAS development build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+      profile:
+        description: 'EAS build profile'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - development-simulator
+          - preview
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  verify:
+    name: Verify Curriculum, Dictionary & Store Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      - name: Run 3-suite verification & Iriza Kinyarwanda dictionary check
+        run: npm test
+
+  eas_development_build:
+    name: Trigger EAS Development Build (Android & iOS)
+    needs: verify
+    runs-on: ubuntu-latest
+    if: ${{ vars.ENABLE_GITHUB_EAS_BUILD == 'true' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      - name: Build Android & iOS Development Builds
+        run: eas build --platform ${{ github.event.inputs.platform || 'all' }} --profile ${{ github.event.inputs.profile || 'development' }} --non-interactive --no-wait
